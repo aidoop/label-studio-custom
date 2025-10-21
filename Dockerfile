@@ -18,11 +18,19 @@ RUN pip install --no-cache-dir label-studio-sso==6.0.7
 # 추가 패키지가 필요한 경우 여기에 설치
 # RUN pip install --no-cache-dir <package-name>
 
-# 커스텀 설정 파일을 복사 (선택사항)
-# ConfigMap이나 Volume으로 런타임에 주입하는 것을 권장하지만,
-# 이미지에 포함시키려면 아래 주석을 해제하세요
-# COPY config/label_studio.py /label-studio/label_studio/core/settings/
-# COPY config/urls.py /label-studio/label_studio/core/
+# 커스텀 설정 파일 복사
+COPY config/label_studio.py /label-studio/label_studio/core/settings/label_studio.py
+COPY config/urls_simple.py /label-studio/label_studio/core/urls.py
+
+# 커스텀 permissions 및 API 복사
+COPY custom-permissions /label-studio/label_studio/custom_permissions
+COPY custom-api /label-studio/label_studio/custom_api
+
+# 커스텀 템플릿 복사 (hideHeader 기능)
+COPY custom-templates/base.html /label-studio/label_studio/templates/base.html
+
+# 초기화 스크립트 복사
+COPY --chmod=755 scripts /scripts
 
 # 헬스체크 설정
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
