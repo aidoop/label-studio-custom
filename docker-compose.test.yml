@@ -1,0 +1,137 @@
+version: '3.8'
+
+# ==============================================================================
+# Label Studio Custom Image - Local Testing Environment
+# ==============================================================================
+#
+# 이 docker-compose 파일은 커스텀 이미지를 로컬에서 빌드하고 테스트하기 위한 용도입니다.
+#
+# 사용 방법:
+#   docker compose -f docker-compose.test.yml up -d        # 실행
+#   docker compose -f docker-compose.test.yml logs -f      # 로그 확인
+#   docker compose -f docker-compose.test.yml down         # 중지
+#
+# ==============================================================================
+
+services:
+  # ==============================================================================
+  # PostgreSQL 데이터베이스
+  # ==============================================================================
+  postgres:
+    image: postgres:13.18
+
+    container_name: label-studio-custom-postgres-test
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: labelstudio
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+
+    ports:
+      - "5433:5432"  # 5433으로 매핑 (기존 PostgreSQL과 충돌 방지)
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    networks:
+      - test-network
+
+  # ==============================================================================
+  # Label Studio Custom Image (로컬 빌드)
+  # ==============================================================================
+  labelstudio:
+    # 현재 디렉토리의 Dockerfile로 빌드
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: label-studio-custom-test
+
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+      # ----------------------------------------------------------------------
+      # 데이터베이스 설정
+      # ----------------------------------------------------------------------
+      DJANGO_DB: default
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: labelstudio
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+      # ----------------------------------------------------------------------
+      # SSO 설정
+      # ----------------------------------------------------------------------
+      JWT_SSO_NATIVE_USER_ID_CLAIM: user_id
+      JWT_SSO_COOKIE_NAME: ls_auth_token
+      JWT_SSO_TOKEN_PARAM: token
+      SSO_TOKEN_EXPIRY: 600
+      SSO_AUTO_CREATE_USERS: "true"
+
+      # ----------------------------------------------------------------------
+      # Cookie 설정 (로컬 테스트)
+      # ----------------------------------------------------------------------
+      SESSION_COOKIE_DOMAIN: .localhost
+      CSRF_COOKIE_DOMAIN: .localhost
+
+      # ----------------------------------------------------------------------
+      # Label Studio 설정
+      # ----------------------------------------------------------------------
+      LABEL_STUDIO_HOST: http://localhost:8081
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+
+      # ----------------------------------------------------------------------
+      # Feature Flags
+      # ----------------------------------------------------------------------
+      FEATURE_FLAGS_OFFLINE: "true"
+      STORAGE_PERSISTENCE: "true"
+
+    volumes:
+      # 데이터 영속성
+      - labelstudio_test_data:/label-studio/data
+
+    ports:
+      - "8081:8080"  # 8081으로 매핑 (기존 Label Studio와 충돌 방지)
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    networks:
+      - test-network
+
+# ==============================================================================
+# 볼륨 정의
+# ==============================================================================
+volumes:
+  postgres_test_data:
+    driver: local
+
+  labelstudio_test_data:
+    driver: local
+
+# ==============================================================================
+# 네트워크 정의
+# ==============================================================================
+networks:
+  test-network:
+    driver: bridge
