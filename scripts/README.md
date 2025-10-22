@@ -6,10 +6,9 @@
 
 | Email | Password | 역할 | 설명 |
 |-------|----------|------|------|
-| `admin@nubison.localhost` | `admin123` | 관리자 | 모든 권한 |
-| `user1@nubison.localhost` | `user123` | 일반 사용자 | 프로젝트 작업 |
-| `user2@nubison.localhost` | `user123` | 일반 사용자 | 프로젝트 작업 |
-| `annotator@nubison.localhost` | `annotator123` | 일반 사용자 | 라벨링 작업 |
+| `admin@nubison.io` | `admin123!` | 관리자 | 모든 권한 |
+| `annotator@nubison.io` | `annotator123!` | 일반 사용자 | 라벨링 작업 |
+| `manager@nubison.io` | `manager123!` | 일반 사용자 | 프로젝트 관리 |
 
 ---
 
@@ -40,12 +39,14 @@ docker-compose exec labelstudio python /scripts/create_initial_users.py
 ```python
 USERS = [
     {
-        'email': 'your-email@nubison.localhost',
+        'email': 'your-email@nubison.io',
+        'username': 'your-email@nubison.io',
         'password': 'your-password',
         'first_name': 'First',
         'last_name': 'Last',
         'is_superuser': False,  # True면 관리자
         'is_staff': False,       # True면 Django admin 접근 가능
+        'is_active': True,
     },
     # 더 많은 사용자 추가...
 ]
@@ -86,7 +87,7 @@ docker-compose exec labelstudio python /label-studio/label_studio/manage.py shel
 # 사용자 삭제
 from django.contrib.auth import get_user_model
 User = get_user_model()
-User.objects.filter(email='admin@nubison.localhost').delete()
+User.objects.filter(email='admin@nubison.io').delete()
 exit()
 
 # 다시 생성

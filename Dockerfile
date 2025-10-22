@@ -10,9 +10,10 @@ LABEL version="1.20.0-sso"
 # 작업 디렉토리 설정
 WORKDIR /label-studio
 
-# label-studio-sso 패키지 설치
-# v6.0.7 버전 사용 (Native JWT 방식)
-RUN pip install --no-cache-dir label-studio-sso==6.0.7
+# 로컬 label-studio-sso 패키지 설치
+# 커스텀 미들웨어 수정 버전 (JWT 우선 인증 - 기존 세션 무시)
+COPY label_studio_sso-6.0.7-py3-none-any.whl /tmp/
+RUN pip install --no-cache-dir /tmp/label_studio_sso-6.0.7-py3-none-any.whl
 
 # PostgreSQL 클라이언트 라이브러리가 이미 설치되어 있음 (공식 이미지에 포함)
 # 추가 패키지가 필요한 경우 여기에 설치

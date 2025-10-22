@@ -74,7 +74,6 @@ if INACTIVITY_SESSION_TIMEOUT_ENABLED:
     MIDDLEWARE.append('core.middleware.InactivitySessionTimeoutMiddleWare')
 
 # SSO 자동 로그인 미들웨어 추가
-# 이 미들웨어는 JWT 토큰(쿠키 또는 URL 파라미터)을 감지하고 자동으로 로그인 처리
 MIDDLEWARE.append('label_studio_sso.middleware.JWTAutoLoginMiddleware')
 
 # ==============================================================================

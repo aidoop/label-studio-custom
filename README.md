@@ -13,8 +13,15 @@
 ## 주요 기능
 
 ### 1. SSO 인증 (Native JWT)
-- **label-studio-sso v6.0.7** 통합
-- JWT 토큰 기반 인증
+- **label-studio-sso v6.0.7** 통합 (커스텀 빌드)
+- JWT 토큰 기반 초기 인증
+- **JWT → Django Session 전환**: 성능 최적화
+  - JWT 인증 성공 시 Django Session 생성
+  - JWT 쿠키 자동 삭제 (이후 Session만 사용)
+  - 최초 1회만 JWT 검증, 이후 Session 기반 빠른 인증
+- **사용자 전환 우선순위**: JWT가 기존 Session보다 우선
+  - 미들웨어 수정: JWT 토큰 있으면 기존 세션 무시
+  - 원활한 사용자 전환 (세션 충돌 없음)
 - 쿠키 및 URL 파라미터 지원
 - 사용자 자동 생성
 
@@ -46,7 +53,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/your-org/label-studio-custom:1.20.0-sso.1
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.5
 
     depends_on:
       - postgres
@@ -179,10 +186,25 @@ Frontend → Backend → Label Studio API
   ↓           ↓              ↓
 사용자 선택  JWT 요청    JWT 토큰 발급
               ↓
-          쿠키 설정 (ls_auth_token)
+          기존 세션 쿠키 삭제 (sessionid, csrftoken)
               ↓
-          iframe 자동 로그인
+          JWT 쿠키 설정 (ls_auth_token)
+              ↓
+          iframe 재생성 (:key="props.email")
+              ↓
+     Label Studio 첫 접근 (JWTAutoLoginMiddleware)
+              ↓
+          JWT 검증 → Django Session 생성
+              ↓
+          ls_auth_token 쿠키 자동 삭제
+              ↓
+          이후 모든 요청: sessionid만 사용 (빠름!)
 ```
+
+**성능 최적화**:
+- **첫 요청**: JWT 검증 + Session 생성 + JWT 삭제
+- **이후 요청**: Session만 사용 (JWT 검증 불필요)
+- **사용자 전환**: 새 JWT → iframe 재생성 → 새 Session
 
 ## 디렉토리 구조
 
@@ -245,27 +267,28 @@ docker compose -f docker-compose.test.yml exec labelstudio pytest tests/
 
 ```bash
 # 이미지 빌드
-docker build -t ghcr.io/your-org/label-studio-custom:1.20.0-sso.1 .
+docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.5 .
 
 # GitHub Container Registry 로그인
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # 이미지 푸시
-docker push ghcr.io/your-org/label-studio-custom:1.20.0-sso.1
+docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.5
 
 # latest 태그 추가
-docker tag ghcr.io/your-org/label-studio-custom:1.20.0-sso.1 \
-           ghcr.io/your-org/label-studio-custom:latest
-docker push ghcr.io/your-org/label-studio-custom:latest
+docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.5 \
+           ghcr.io/aidoop/label-studio-custom:latest
+docker push ghcr.io/aidoop/label-studio-custom:latest
 ```
 
 ## 버전 관리
 
 ### 태그 규칙
 
-- `v1.20.0-sso.1` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 1
-- `v1.20.0-sso.2` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 2 (bugfix)
-- `v1.21.0-sso.1` - Label Studio 1.21.0 업그레이드
+- `1.20.0-sso.1` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 1
+- `1.20.0-sso.2` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 2 (bugfix)
+- `1.20.0-sso.5` - Label Studio 1.20.0 기반, JWT → Session 전환 (현재 버전)
+- `1.21.0-sso.1` - Label Studio 1.21.0 업그레이드 (미래)
 
 ### 브랜치 전략
 
