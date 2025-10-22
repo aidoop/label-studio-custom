@@ -297,15 +297,9 @@ docker push ghcr.io/aidoop/label-studio-custom:latest
 - `feature/*` - 기능 개발
 - `upgrade/*` - Label Studio 업그레이드
 
-## 문서
-
-- [Features](docs/FEATURES.md) - 기능 상세 설명
-- [Deployment](docs/DEPLOYMENT.md) - 배포 가이드
-- [Customization Guide](docs/CUSTOMIZATION_GUIDE.md) - 추가 커스터마이징 방법
-
 ## 샘플 애플리케이션
 
-이 커스텀 이미지를 사용하는 샘플 애플리케이션은 [label-studio-sso-app](https://github.com/your-org/label-studio-sso-app)을 참고하세요.
+이 커스텀 이미지를 사용하는 샘플 애플리케이션은 [label-studio-sso-app](https://github.com/aidoop/label-studio-sso-app)을 참고하세요.
 
 ## 라이선스
 
