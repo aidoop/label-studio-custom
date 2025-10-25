@@ -30,6 +30,11 @@ COPY custom-api /label-studio/label_studio/custom_api
 # 커스텀 템플릿 복사 (hideHeader 기능)
 COPY custom-templates/base.html /label-studio/label_studio/templates/base.html
 
+# Webhook payload enrichment 패치 적용
+# Label Studio의 실제 webhooks/utils.py에 completed_by_info 추가 로직 삽입
+COPY patch_webhooks.py /tmp/patch_webhooks.py
+RUN python3 /tmp/patch_webhooks.py
+
 # 초기화 스크립트 복사
 COPY --chmod=755 scripts /scripts
 

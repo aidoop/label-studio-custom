@@ -37,6 +37,12 @@
 - API 레벨 보안 (Postman, curl 등 직접 호출 차단)
 - Admin 계정은 모든 annotation 접근 가능
 
+### 4. Webhook Payload 커스터마이징
+- Annotation 이벤트 webhook에 사용자 정보 자동 추가
+- `completed_by_info` 필드로 사용자 상세 정보 제공
+- `is_superuser` 플래그로 관리자/일반 사용자 구분
+- MLOps 시스템에서 별도 API 호출 없이 사용자 정보 확인 가능
+
 ## Quick Start
 
 ### Docker Hub에서 사용
@@ -206,6 +212,75 @@ Frontend → Backend → Label Studio API
 - **이후 요청**: Session만 사용 (JWT 검증 불필요)
 - **사용자 전환**: 새 JWT → iframe 재생성 → 새 Session
 
+### Webhook Payload 커스터마이징
+
+Label Studio의 webhook payload에 **사용자 상세 정보**를 자동으로 추가합니다.
+
+#### 구현 방식
+
+**patch_webhooks.py 스크립트**가 Docker 빌드 시 Label Studio 소스 코드를 직접 패치:
+```dockerfile
+COPY patch_webhooks.py /tmp/patch_webhooks.py
+RUN python3 /tmp/patch_webhooks.py
+```
+
+- **패치 대상**: `label_studio/webhooks/utils.py` → `run_webhook_sync()` 함수
+- **추가 필드**: `annotation.completed_by_info`
+- **적용 이벤트**: `ANNOTATION_CREATED`, `ANNOTATION_UPDATED`, `ANNOTATIONS_DELETED`
+
+#### Payload 비교
+
+**기본 Label Studio**:
+```json
+{
+  "action": "ANNOTATION_CREATED",
+  "annotation": {
+    "id": 17,
+    "completed_by": 1,  // ID만 제공
+    "task": 19
+  }
+}
+```
+
+**패치 적용 후**:
+```json
+{
+  "action": "ANNOTATION_CREATED",
+  "annotation": {
+    "id": 17,
+    "completed_by": 1,
+    "completed_by_info": {     // ✨ 자동 추가
+      "id": 1,
+      "email": "user@example.com",
+      "username": "user1",
+      "is_superuser": false
+    },
+    "task": 19
+  }
+}
+```
+
+#### MLOps 활용 예시
+
+```python
+# Superuser만 모델 성능 측정에 사용
+def handle_annotation_webhook(request):
+    payload = request.json
+    user_info = payload['annotation'].get('completed_by_info', {})
+
+    if user_info.get('is_superuser'):
+        # Superuser annotation은 처리
+        calculate_model_performance(payload)
+    else:
+        # Regular user annotation은 무시
+        return {"status": "skipped"}
+```
+
+**주요 이점**:
+- ✅ **API 호출 불필요**: User 정보가 payload에 포함
+- ✅ **실시간 필터링**: superuser 여부로 즉시 구분
+- ✅ **성능 향상**: 별도 네트워크 요청 없음
+
 ## 디렉토리 구조
 
 ```
@@ -227,6 +302,8 @@ label-studio-custom/
 │   ├── __init__.py
 │   ├── annotations.py
 │   └── urls.py
+│
+├── patch_webhooks.py               # Webhook payload 커스터마이징 패치
 │
 ├── custom-templates/               # 템플릿 커스터마이징
 │   └── base.html                  # hideHeader 기능

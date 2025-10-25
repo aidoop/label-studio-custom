@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Webhook Payload 커스터마이징
+- Annotation 이벤트 webhook에 `completed_by_info` 필드 자동 추가
+- 사용자 ID, 이메일, 사용자명, superuser 여부 포함
+- MLOps 시스템에서 별도 API 호출 없이 사용자 정보 확인 가능
+- Monkey patching 방식으로 Label Studio webhook 함수 확장
+- 파일:
+  - `custom-webhooks/__init__.py`
+  - `custom-webhooks/apps.py`
+  - `custom-webhooks/utils.py`
+  - `custom-webhooks/signals.py`
+  - `custom-webhooks/tests.py`
+
+### Changed
+- `config/label_studio.py`: `custom_webhooks` 앱 추가
+- `Dockerfile`: custom-webhooks 디렉토리 복사 추가
+
 ## [1.20.0-sso.1] - 2025-10-22
 
 ### Added
