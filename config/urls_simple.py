@@ -57,6 +57,10 @@ urlpatterns = [
     # 중요: tasks.urls보다 먼저 등록하여 기본 URL을 오버라이드
     path('api/annotations/', include('custom_api.urls')),
 
+    # Admin User Management API (Superuser 생성)
+    # Admin 권한 필요
+    path('api/', include('custom_api.urls')),
+
     # Label Studio 앱 URL 패턴
     re_path(r'^', include('organizations.urls')),
     re_path(r'^', include('projects.urls')),

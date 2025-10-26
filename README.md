@@ -43,6 +43,12 @@
 - `is_superuser` 플래그로 관리자/일반 사용자 구분
 - MLOps 시스템에서 별도 API 호출 없이 사용자 정보 확인 가능
 
+### 5. Admin User Management API
+- **Superuser 생성 API**: Admin 권한으로 프로그래밍 방식으로 Superuser 생성 가능
+- **Superuser 승격 API**: 기존 일반 사용자를 Superuser로 승격
+- REST API 기반으로 자동화 및 스크립팅 지원
+- Organization 멤버십 자동 추가 및 API 토큰 자동 생성
+
 ## Quick Start
 
 ### Docker Hub에서 사용
@@ -281,6 +287,130 @@ def handle_annotation_webhook(request):
 - ✅ **실시간 필터링**: superuser 여부로 즉시 구분
 - ✅ **성능 향상**: 별도 네트워크 요청 없음
 
+### Admin User Management API
+
+Label Studio의 기본 API로는 보안상 이유로 superuser를 생성할 수 없습니다. 이 커스텀 이미지는 Admin 권한을 가진 사용자만 접근 가능한 Superuser 관리 API를 제공합니다.
+
+#### 1. Superuser 생성
+
+**Endpoint**: `POST /api/admin/users/create-superuser`
+
+**권한**: Admin 사용자만 접근 가능 (IsAdminUser)
+
+**Request Body**:
+```json
+{
+  "email": "newadmin@example.com",
+  "password": "secure_password123",
+  "username": "newadmin",           // optional, defaults to email
+  "first_name": "Admin",             // optional
+  "last_name": "User",               // optional
+  "create_token": true,              // optional, defaults to true
+  "add_to_organization": 1           // optional, organization ID
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "user": {
+    "id": 4,
+    "email": "newadmin@example.com",
+    "username": "newadmin",
+    "first_name": "Admin",
+    "last_name": "User",
+    "is_superuser": true,
+    "is_staff": true,
+    "is_active": true
+  },
+  "token": "58d3d3017db87d056db45620160c329c5a40b21d",
+  "organization": {
+    "id": 1,
+    "title": "Default Organization"
+  }
+}
+```
+
+**사용 예시**:
+```bash
+curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/create-superuser" \
+  -H "Authorization: Token YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "newadmin@example.com",
+    "password": "secure_password123",
+    "first_name": "New",
+    "last_name": "Admin",
+    "create_token": true,
+    "add_to_organization": 1
+  }'
+```
+
+#### 2. 기존 사용자를 Superuser로 승격
+
+**Endpoint**: `POST /api/admin/users/<user_id>/promote-to-superuser`
+
+**권한**: Admin 사용자만 접근 가능 (IsAdminUser)
+
+**Response**:
+```json
+{
+  "success": true,
+  "user": {
+    "id": 2,
+    "email": "user@example.com",
+    "username": "user",
+    "is_superuser": true,
+    "is_staff": true
+  }
+}
+```
+
+**사용 예시**:
+```bash
+curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/2/promote-to-superuser" \
+  -H "Authorization: Token YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+#### 3. Superuser 권한 해제
+
+**Endpoint**: `POST /api/admin/users/<user_id>/demote-from-superuser`
+
+**권한**: Admin 사용자만 접근 가능 (IsAdminUser)
+
+**Response**:
+```json
+{
+  "success": true,
+  "user": {
+    "id": 3,
+    "email": "user@example.com",
+    "username": "user",
+    "is_superuser": false,
+    "is_staff": false
+  }
+}
+```
+
+**사용 예시**:
+```bash
+curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/3/demote-from-superuser" \
+  -H "Authorization: Token YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+**보안 기능**:
+- ⚠️ **자기 자신 해제 불가**: 자신의 Superuser 권한은 해제할 수 없음
+- ✅ **실수 방지**: 마지막 Admin이 실수로 권한을 잃는 것을 방지
+
+**활용 시나리오**:
+- CI/CD 파이프라인에서 자동으로 Admin 계정 생성
+- 프로비저닝 스크립트에서 초기 사용자 설정
+- 사용자 관리 자동화 워크플로우
+- Infrastructure as Code (IaC) 통합
+
 ## 디렉토리 구조
 
 ```
@@ -298,9 +428,10 @@ label-studio-custom/
 │   ├── mixins.py
 │   └── tests.py
 │
-├── custom-api/                     # API 오버라이드
+├── custom-api/                     # API 오버라이드 및 확장
 │   ├── __init__.py
-│   ├── annotations.py
+│   ├── annotations.py             # Annotation 소유권 API
+│   ├── admin_users.py             # Admin User Management API
 │   └── urls.py
 │
 ├── patch_webhooks.py               # Webhook payload 커스터마이징 패치
