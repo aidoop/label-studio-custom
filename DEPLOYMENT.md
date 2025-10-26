@@ -196,7 +196,7 @@ v<label-studio-version>-sso.<custom-version>
 
 ```bash
 # Public 이미지 pull (최신 버전)
-docker pull ghcr.io/aidoop/label-studio-custom:1.20.0-sso.6
+docker pull ghcr.io/aidoop/label-studio-custom:1.20.0-sso.7
 
 # 또는 latest
 docker pull ghcr.io/aidoop/label-studio-custom:latest
@@ -208,7 +208,7 @@ docker pull ghcr.io/aidoop/label-studio-custom:latest
 services:
   labelstudio:
     # 특정 버전 사용 (권장)
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.6
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.7
 
     # 또는 latest (개발용)
     # image: ghcr.io/aidoop/label-studio-custom:latest
