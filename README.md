@@ -90,7 +90,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.7
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.11
 
     depends_on:
       - postgres
@@ -619,16 +619,16 @@ docker compose -f docker-compose.test.yml exec labelstudio pytest tests/
 
 ```bash
 # 이미지 빌드
-docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.5 .
+docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.11 .
 
 # GitHub Container Registry 로그인
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # 이미지 푸시
-docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.5
+docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.11
 
 # latest 태그 추가
-docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.5 \
+docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.11 \
            ghcr.io/aidoop/label-studio-custom:latest
 docker push ghcr.io/aidoop/label-studio-custom:latest
 ```
@@ -639,7 +639,7 @@ docker push ghcr.io/aidoop/label-studio-custom:latest
 
 - `1.20.0-sso.1` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 1
 - `1.20.0-sso.2` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 2 (bugfix)
-- `1.20.0-sso.5` - Label Studio 1.20.0 기반, JWT → Session 전환 (현재 버전)
+- `1.20.0-sso.11` - Label Studio 1.20.0 기반, Custom Export API 오리지널 Serializer 적용 (현재 버전)
 - `1.21.0-sso.1` - Label Studio 1.21.0 업그레이드 (미래)
 
 ### 브랜치 전략
