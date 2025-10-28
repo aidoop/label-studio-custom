@@ -504,11 +504,52 @@ send_performance_to_backend(model_version="bert-v1", accuracy=accuracy)
    - `page`와 `page_size`는 함께 제공되어야 합니다.
    - 둘 다 없으면 전체 데이터를 반환합니다.
 
+## 구현 세부사항
+
+### Label Studio 오리지널 Serializer 사용
+
+Custom Export API는 Label Studio 1.20.0의 표준 Serializer를 사용하여 데이터를 직렬화합니다:
+
+- **PredictionSerializer** (`tasks.serializers.PredictionSerializer`)
+  - 모든 prediction 필드 자동 포함 (`id`, `model_version`, `score`, `result`, `created_at`, `created_ago` 등)
+  - Label Studio 표준 형식 준수
+
+- **AnnotationSerializer** (`tasks.serializers.AnnotationSerializer`)
+  - 모든 annotation 필드 자동 포함 (`id`, `completed_by`, `result`, `was_cancelled`, `created_at`, `updated_at`, `created_ago`, `created_username` 등)
+  - Label Studio 표준 형식 준수
+
+### MLOps 커스텀 기능
+
+오리지널 Serializer를 사용하면서 MLOps에 필요한 기능 추가:
+
+1. **completed_by_info Enrichment**
+   - Annotation에 사용자 상세 정보 자동 추가
+   - Webhook enrichment와 동일한 형식
+   - 별도 API 호출 없이 사용자 정보 확인 가능
+
+2. **필터링 기능**
+   - 날짜 범위 필터링 (`task.data.source_created_dt`)
+   - 모델 버전 필터링 (`prediction.model_version`)
+   - 승인자 필터링 (Super User only)
+
+3. **성능 최적화**
+   - N+1 쿼리 방지 (Prefetch + Select Related)
+   - 선택적 페이징 지원
+
+### 오리지널 구현 준수의 장점
+
+1. **호환성**: Label Studio 업데이트 시 새 필드 자동 포함
+2. **표준 준수**: Label Studio API 응답 형식과 일치
+3. **유지보수성**: 코드 중복 최소화, 간결한 구조
+4. **확장성**: Label Studio의 기능 개선 자동 반영
+
 ## 버전 정보
 
 - **최초 버전:** v1.20.0-sso.10
+- **오리지널 Serializer 적용:** v1.20.0-sso.11
 - **Label Studio 기반 버전:** 1.20.0
 - **문서 작성일:** 2025-10-28
+- **최종 수정일:** 2025-10-28
 
 ## 관련 문서
 
