@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.9] - 2025-10-28
+
 ### Added
 
 #### iframe 임베딩 X-Frame-Options 설정
@@ -17,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `X_FRAME_OPTIONS=SAMEORIGIN`: 같은 도메인에서만 허용
 - 다른 도메인에서 Label Studio를 iframe으로 임베드할 때 발생하는 문제 해결
 - 파일: `config/label_studio.py` (X-Frame-Options 설정 추가)
+
+### Changed
+- README.md: iframe 임베딩 설정 섹션 추가
+- README.md: X-Frame-Options 환경변수 설명 추가
 
 ## [1.20.0-sso.8] - 2025-10-28
 
