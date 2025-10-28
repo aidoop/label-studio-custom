@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.11] - 2025-10-28
+
+### Changed
+
+#### Custom Export API 리팩토링
+- **목적**: Label Studio 오리지널 구현 패턴 준수
+- **변경 사항**:
+  - Label Studio 오리지널 `PredictionSerializer` 사용
+  - Label Studio 오리지널 `AnnotationSerializer` 사용
+  - 수동 직렬화 코드 제거 (29줄 감소)
+- **장점**:
+  - Label Studio 1.20.0 표준 Serializer 사용으로 호환성 향상
+  - 모든 필드 자동 포함 (`created_ago`, `created_username` 등)
+  - 코드 유지보수성 향상
+  - MLOps 커스텀 기능 유지 (`completed_by_info` enrichment)
+- **파일**: `custom-api/export.py`
+
 ## [1.20.0-sso.10] - 2025-10-28
 
 ### Added
