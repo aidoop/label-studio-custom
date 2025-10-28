@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### iframe 임베딩 X-Frame-Options 설정
+- **기본값 변경**: 환경변수 미설정 시 iframe 임베딩 자동 허용 (Django 기본 SAMEORIGIN 제약 제거)
+- 환경변수로 X-Frame-Options 제어 가능
+  - 설정 안함: 모든 도메인에서 iframe 임베딩 허용 (기본값, 권장)
+  - `X_FRAME_OPTIONS=DENY`: iframe 임베딩 완전 차단
+  - `X_FRAME_OPTIONS=SAMEORIGIN`: 같은 도메인에서만 허용
+- 다른 도메인에서 Label Studio를 iframe으로 임베드할 때 발생하는 문제 해결
+- 파일: `config/label_studio.py` (X-Frame-Options 설정 추가)
+
 ## [1.20.0-sso.8] - 2025-10-28
 
 ### Added

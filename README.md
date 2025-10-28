@@ -157,6 +157,30 @@ docker run -p 8080:8080 \
 | `SESSION_COOKIE_DOMAIN` | 세션 쿠키 도메인 | `.nubison.localhost` |
 | `CSRF_COOKIE_DOMAIN` | CSRF 쿠키 도메인 | `.nubison.localhost` |
 
+### iframe 임베딩 설정
+
+| 변수 | 설명 | 기본값 | 가능한 값 |
+|------|------|--------|-----------|
+| `X_FRAME_OPTIONS` | iframe 임베딩 제어 | 설정 안함 (허용) | `DENY`, `SAMEORIGIN` |
+
+**설명:**
+- **설정 안함** (권장): 모든 도메인에서 iframe 임베딩 허용
+- `DENY`: iframe 임베딩 완전 차단
+- `SAMEORIGIN`: 같은 도메인에서만 허용
+
+**기본 동작:**
+- 환경변수를 설정하지 않으면 **자동으로 iframe 임베딩이 허용**됩니다
+- Django의 기본 `SAMEORIGIN` 제약이 제거됩니다
+
+**사용 예시:**
+```yaml
+# iframe 임베딩 차단이 필요한 경우에만 설정
+environment:
+  X_FRAME_OPTIONS: DENY  # iframe 임베딩 차단
+  # 또는
+  X_FRAME_OPTIONS: SAMEORIGIN  # 같은 도메인에서만 허용
+```
+
 ### 선택 환경 변수
 
 | 변수 | 설명 | 기본값 |
