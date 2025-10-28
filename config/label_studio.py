@@ -204,27 +204,30 @@ except IOError:
 # ==============================================================================
 
 # X-Frame-Options 설정
-# - None: iframe 임베딩 완전 허용 (모든 도메인) - 기본값
+# Django 공식 방법: XFrameOptionsMiddleware 제거 또는 X_FRAME_OPTIONS 설정
+#
+# - 설정 안함 (기본값): 미들웨어 제거 → iframe 임베딩 완전 허용
 # - 'DENY': iframe 임베딩 완전 차단
 # - 'SAMEORIGIN': 같은 도메인에서만 허용
 #
 # 환경변수로 제어 가능:
-# - 설정 안함: None (완전 허용) - 기본값
+# - 설정 안함: 미들웨어 제거 (완전 허용) - 기본값
 # - X_FRAME_OPTIONS=DENY (차단)
 # - X_FRAME_OPTIONS=SAMEORIGIN (같은 도메인만)
 X_FRAME_OPTIONS_VALUE = get_env('X_FRAME_OPTIONS', 'ALLOW')  # 기본값: ALLOW
 
 if X_FRAME_OPTIONS_VALUE == 'ALLOW' or X_FRAME_OPTIONS_VALUE == 'None':
     # iframe 임베딩 완전 허용 (기본값)
-    X_FRAME_OPTIONS = None
-    # XFrameOptionsMiddleware 제거
+    # Django 공식 방법: XFrameOptionsMiddleware 제거
     MIDDLEWARE = [m for m in MIDDLEWARE if m != 'django.middleware.clickjacking.XFrameOptionsMiddleware']
+    # 미들웨어가 제거되었으므로 X_FRAME_OPTIONS 설정은 무시됨
 elif X_FRAME_OPTIONS_VALUE in ['DENY', 'SAMEORIGIN']:
     # 명시적으로 설정된 경우
+    # 미들웨어는 유지하고 X_FRAME_OPTIONS 값만 설정
     X_FRAME_OPTIONS = X_FRAME_OPTIONS_VALUE
 else:
     # 알 수 없는 값인 경우 기본값으로 허용
-    X_FRAME_OPTIONS = None
+    # Django 공식 방법: XFrameOptionsMiddleware 제거
     MIDDLEWARE = [m for m in MIDDLEWARE if m != 'django.middleware.clickjacking.XFrameOptionsMiddleware']
 
 # ==============================================================================
