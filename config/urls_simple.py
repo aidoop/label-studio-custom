@@ -61,6 +61,10 @@ urlpatterns = [
     # Admin 권한 필요
     path('api/', include('custom_api.urls')),
 
+    # Project API 오버라이드 (model_version validation bypass)
+    # 중요: projects.urls보다 먼저 등록하여 기본 URL을 오버라이드
+    path('api/projects/', include('custom_api.projects_urls')),
+
     # Label Studio 앱 URL 패턴
     re_path(r'^', include('organizations.urls')),
     re_path(r'^', include('projects.urls')),

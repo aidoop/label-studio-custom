@@ -49,6 +49,14 @@
 - REST API 기반으로 자동화 및 스크립팅 지원
 - Organization 멤버십 자동 추가 및 API 토큰 자동 생성
 
+### 6. Project model_version 유효성 검증 우회
+- **문제**: Label Studio 1.20.0에서 Project 수정 시 `model_version` 필드에 대한 과도한 검증
+  - Project 생성 시: model_version 자유롭게 저장 가능 ✅
+  - Project 수정 시: "Model version doesn't exist either as live model or as static predictions" 오류 ❌
+- **해결**: ProjectSerializer를 커스터마이징하여 `validate_model_version` 메서드 오버라이드
+- **목적**: 외부 MLOps 시스템의 모델 버전 ID를 Project에 저장하여 성능 계산 시 참조
+- **효과**: PATCH `/api/projects/{id}/` 요청 시 어떤 model_version 값도 자유롭게 저장 가능
+
 ## Quick Start
 
 ### Docker Hub에서 사용
@@ -411,6 +419,100 @@ curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/3/demote-from-su
 - 사용자 관리 자동화 워크플로우
 - Infrastructure as Code (IaC) 통합
 
+### Project model_version 수정 API
+
+외부 MLOps 시스템의 모델 버전 정보를 Project에 저장하여 모델 성능 계산 시 참조할 수 있습니다.
+
+#### 문제 상황 (Label Studio 1.20.0 기본 동작)
+
+**Project 생성 시**: ✅ 정상 작동
+```bash
+curl -X POST "http://localhost:8080/api/projects/" \
+  -H "Authorization: Token YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "My Project",
+    "model_version": "aiver03"
+  }'
+```
+
+**Project 수정 시**: ❌ 오류 발생
+```bash
+curl -X PATCH "http://localhost:8080/api/projects/11/" \
+  -H "Authorization: Token YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_version": "aiver03"
+  }'
+
+# 응답:
+{
+  "id": "e1d51fd6-64ec-4365-9989-3a43b0e94bce",
+  "status_code": 400,
+  "version": "1.20.0",
+  "detail": "Validation error",
+  "exc_info": null,
+  "validation_errors": {
+    "model_version": [
+      "Model version doesn't exist either as live model or as static predictions."
+    ]
+  }
+}
+```
+
+#### 해결 방법 (커스텀 이미지)
+
+이 커스텀 이미지는 `ProjectSerializer`의 `validate_model_version` 메서드를 오버라이드하여 검증을 우회합니다.
+
+**Project 수정 시**: ✅ 정상 작동
+```bash
+curl -X PATCH "http://localhost:8080/api/projects/11/" \
+  -H "Authorization: Token YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_version": "aiver03"
+  }'
+
+# 응답:
+{
+  "id": 11,
+  "title": "My Project",
+  "model_version": "aiver03",
+  ...
+}
+```
+
+**주요 이점**:
+- ✅ **일관된 동작**: 생성과 수정 시 동일한 규칙 적용
+- ✅ **외부 시스템 연동**: Label Studio에 없는 모델 버전 ID도 저장 가능
+- ✅ **MLOps 통합**: 모델 성능 추적 시 Project 단위 버전 관리
+
+**활용 시나리오**:
+```python
+# MLOps 시스템에서 모델 학습 완료 후 Project에 버전 기록
+import requests
+
+def update_project_model_version(project_id: int, model_version: str):
+    """모델 학습 완료 후 Label Studio Project에 버전 정보 업데이트"""
+    response = requests.patch(
+        f"http://labelstudio.example.com/api/projects/{project_id}/",
+        headers={"Authorization": f"Token {LABELSTUDIO_TOKEN}"},
+        json={"model_version": model_version}
+    )
+    return response.json()
+
+# 모델 학습 파이프라인
+train_model()  # 모델 학습
+model_version = "aiver04"  # 새 버전
+update_project_model_version(project_id=11, model_version=model_version)
+```
+
+**구현 상세**:
+- **파일**: `custom-api/projects.py`
+- **방식**: `ProjectSerializer` 상속 후 `validate_model_version()` 오버라이드
+- **URL**: `api/projects/<int:pk>/` (Label Studio 기본 URL과 동일)
+- **우선순위**: `config/urls_simple.py`에서 `projects.urls`보다 먼저 등록하여 오버라이드
+
 ## 디렉토리 구조
 
 ```
@@ -431,6 +533,7 @@ label-studio-custom/
 ├── custom-api/                     # API 오버라이드 및 확장
 │   ├── __init__.py
 │   ├── annotations.py             # Annotation 소유권 API
+│   ├── projects.py                # Project model_version 검증 우회
 │   ├── admin_users.py             # Admin User Management API
 │   └── urls.py
 │

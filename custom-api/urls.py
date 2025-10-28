@@ -1,18 +1,21 @@
 """
 Custom API URLs
 
-AnnotationAPI를 커스텀 버전으로 오버라이드하고,
+AnnotationAPI와 ProjectAPI를 커스텀 버전으로 오버라이드하고,
 Admin 전용 사용자 관리 API를 제공합니다.
 """
 
 from django.urls import path
 from custom_api.annotations import AnnotationAPI
+from custom_api.projects import ProjectAPI
 from custom_api.admin_users import CreateSuperuserAPI, PromoteToSuperuserAPI, DemoteFromSuperuserAPI
 
 app_name = 'custom_api'
 
-# Annotation API 오버라이드
+# 기본 urlpatterns
+# Annotation API 오버라이드 + Admin User Management API
 urlpatterns = [
+    # Annotation API 오버라이드 (annotation ownership control)
     path('<int:pk>/', AnnotationAPI.as_view(), name='annotation-detail'),
 
     # Admin User Management APIs

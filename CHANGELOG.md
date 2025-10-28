@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.8] - 2025-10-28
+
+### Added
+
+#### Project model_version 검증 우회
+- Project 수정 API에서 `model_version` 필드 유효성 검증을 우회
+- 외부 MLOps 시스템의 모델 버전 ID를 자유롭게 저장 가능
+- `ProjectSerializer`의 `validate_model_version()` 메서드 오버라이드
+- 생성/수정 시 일관된 동작 제공 (일관성 개선)
+- 파일:
+  - `custom-api/projects.py` (새로 추가)
+  - `custom-api/projects_urls.py` (새로 추가)
+  - `custom-api/urls.py` (리팩토링)
+  - `config/urls_simple.py` (Project API 오버라이드 라우팅)
+
+### Changed
+- README.md: 주요 기능 섹션에 "6. Project model_version 유효성 검증 우회" 추가
+- README.md: Project model_version 수정 API 사용 예시 및 활용 시나리오 추가
+- README.md: 디렉토리 구조에 `projects.py` 추가
+
+### Fixed
+- Django URL 라우팅 오류 수정 (project_urlpatterns를 별도 파일로 분리)
+
+## [1.20.0-sso.7] - 2025-10-XX
+
 ### Added
 
 #### Webhook Payload 커스터마이징
