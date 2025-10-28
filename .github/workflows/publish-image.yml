@@ -14,7 +14,7 @@ jobs:
     name: Build and Publish Image
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write  # GitHub Release 생성을 위해 write 권한 필요
       packages: write
 
     steps:
