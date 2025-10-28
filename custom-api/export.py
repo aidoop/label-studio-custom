@@ -13,6 +13,10 @@ from rest_framework.permissions import IsAuthenticated
 
 from projects.models import Project
 from tasks.models import Task, Annotation, Prediction
+
+# Label Studio 오리지널 Serializer 사용
+from tasks.serializers import PredictionSerializer, AnnotationSerializer
+
 from .export_serializers import (
     CustomExportRequestSerializer,
     CustomExportResponseSerializer,
@@ -190,7 +194,7 @@ class CustomExportAPI(APIView):
 
     def _serialize_tasks(self, tasks):
         """
-        Task 목록을 직렬화
+        Task 목록을 직렬화 (Label Studio 오리지널 Serializer 사용)
 
         Args:
             tasks: Task QuerySet
@@ -201,40 +205,30 @@ class CustomExportAPI(APIView):
         tasks_data = []
 
         for task in tasks:
-            # Annotations 직렬화
-            annotations_data = []
-            for annotation in task.annotations.all():
-                anno_data = {
-                    'id': annotation.id,
-                    'completed_by': annotation.completed_by_id,
-                    'result': annotation.result,
-                    'was_cancelled': annotation.was_cancelled,
-                    'created_at': annotation.created_at,
-                    'updated_at': annotation.updated_at,
-                }
+            # Predictions 직렬화 - Label Studio 오리지널 Serializer 사용
+            predictions_data = PredictionSerializer(
+                task.predictions.all(),
+                many=True,
+                read_only=True
+            ).data
 
-                # completed_by_info 추가 (Webhook enrichment와 동일)
+            # Annotations 직렬화 - Label Studio 오리지널 Serializer 사용
+            annotations = task.annotations.all()
+            annotations_data = AnnotationSerializer(
+                annotations,
+                many=True,
+                read_only=True
+            ).data
+
+            # completed_by_info 추가 (MLOps 요구사항: Webhook enrichment와 동일)
+            for i, annotation in enumerate(annotations):
                 if annotation.completed_by:
-                    anno_data['completed_by_info'] = {
+                    annotations_data[i]['completed_by_info'] = {
                         'id': annotation.completed_by.id,
                         'email': annotation.completed_by.email,
                         'username': annotation.completed_by.username,
                         'is_superuser': annotation.completed_by.is_superuser,
                     }
-
-                annotations_data.append(anno_data)
-
-            # Predictions 직렬화
-            predictions_data = []
-            for prediction in task.predictions.all():
-                pred_data = {
-                    'id': prediction.id,
-                    'model_version': prediction.model_version,
-                    'score': prediction.score,
-                    'result': prediction.result,
-                    'created_at': prediction.created_at,
-                }
-                predictions_data.append(pred_data)
 
             # Task 직렬화
             task_data = {
