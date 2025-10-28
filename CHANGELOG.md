@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.10] - 2025-10-28
+
+### Added
+
+#### Custom Export API (MLOps 통합)
+- **목적**: MLOps 시스템의 모델 학습 및 성능 계산을 위한 필터링된 Task Export API
+- **엔드포인트**: `POST /api/custom/export/`
+- **주요 기능**:
+  - 날짜 범위 필터링 (`task.data.source_created_dt`)
+  - 모델 버전 필터링 (`prediction.model_version`)
+  - 승인자 필터링 (`annotation.completed_by` - Super User만)
+  - 선택적 페이징 지원 (기본: 전체 반환)
+  - N+1 쿼리 최적화 (Prefetch)
+- **사용 시나리오**:
+  - 모델 학습 데이터 수집
+  - 모델 성능 계산 (예측 vs 승인 라벨 비교)
+- **파일**:
+  - `custom-api/export.py` (새로 추가)
+  - `custom-api/export_serializers.py` (새로 추가)
+  - `custom-api/urls.py` (라우팅 추가)
+  - `docs/CUSTOM_EXPORT_API_GUIDE.md` (API 가이드 문서)
+
+### Changed
+- README.md: "7. Custom Export API (MLOps 통합)" 섹션 추가
+- README.md: Custom Export API 문서 링크 추가
+
 ## [1.20.0-sso.9] - 2025-10-28
 
 ### Added

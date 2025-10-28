@@ -9,11 +9,12 @@ from django.urls import path
 from custom_api.annotations import AnnotationAPI
 from custom_api.projects import ProjectAPI
 from custom_api.admin_users import CreateSuperuserAPI, PromoteToSuperuserAPI, DemoteFromSuperuserAPI
+from custom_api.export import CustomExportAPI
 
 app_name = 'custom_api'
 
 # 기본 urlpatterns
-# Annotation API 오버라이드 + Admin User Management API
+# Annotation API 오버라이드 + Admin User Management API + Custom Export API
 urlpatterns = [
     # Annotation API 오버라이드 (annotation ownership control)
     path('<int:pk>/', AnnotationAPI.as_view(), name='annotation-detail'),
@@ -22,4 +23,7 @@ urlpatterns = [
     path('admin/users/create-superuser', CreateSuperuserAPI.as_view(), name='create-superuser'),
     path('admin/users/<int:user_id>/promote-to-superuser', PromoteToSuperuserAPI.as_view(), name='promote-to-superuser'),
     path('admin/users/<int:user_id>/demote-from-superuser', DemoteFromSuperuserAPI.as_view(), name='demote-from-superuser'),
+
+    # Custom Export API (MLOps 모델 학습 및 성능 계산용)
+    path('custom/export/', CustomExportAPI.as_view(), name='custom-export'),
 ]
