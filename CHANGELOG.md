@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.17] - 2025-10-29
+
+### Fixed
+
+#### Font Preload 제거
+- **문제**: 브라우저 경고 "preload not used within a few seconds from the window's load event"
+- **원인**: Figtree 폰트를 preload했지만 React SPA 로드 후에야 사용되어 브라우저가 불필요한 preload로 판단
+- **해결**: `<link rel="preload">` 태그 제거 (폰트는 CSS를 통해 필요할 때 자동 로드)
+- **효과**: 브라우저 콘솔 경고 제거, 기능에는 영향 없음
+- **파일**: `custom-templates/base.html` (line 19-21 삭제)
+
+## [1.20.0-sso.16] - 2025-10-29
+
+### Fixed
+
+#### Font Preload Link 속성 수정
+- **문제**: 브라우저 경고 "<link rel=preload> must have a valid `as` value"
+- **원인**: `type="font"` 사용, `as` 속성 누락
+- **해결**: `as="font" type="font/ttf"` 형식으로 수정
+- **파일**: `custom-templates/base.html` (line 20-21)
+
+## [1.20.0-sso.15] - 2025-10-29
+
+### Changed
+
+#### hideHeader Fix 디버그 로그 제거
+- **목적**: 프로덕션 환경에서 브라우저 콘솔 출력 깔끔하게 유지
+- **변경 사항**: hideHeader Fix 스크립트에서 6개 console.log 제거
+- **영향**: hideHeader 기능은 그대로 유지, 로그만 제거
+- **파일**: `custom-templates/base.html`
+
+## [1.20.0-sso.14] - 2025-10-29
+
+### Fixed
+
+#### Service Worker 파일 라우팅 수정
+- **문제**: sw.js, sw-fallback.js 파일 500 Internal Server Error
+- **원인**: URL 라우팅에서 잘못된 경로 사용 (`js/sw.js`)
+- **실제 위치**: `static_build/js/sw.js`
+- **해결**: `config/urls_simple.py`에서 정확한 경로로 수정
+- **파일**: `config/urls_simple.py` (line 20-24)
+
+## [1.20.0-sso.13] - 2025-10-29
+
+### Changed
+
+#### 쿠키 이름 충돌 방지
+- **목적**: 같은 도메인에서 여러 Django 애플리케이션 실행 시 쿠키 충돌 방지
+- **변경 사항**:
+  - Session 쿠키: `sessionid` → `ls_sessionid`
+  - CSRF 쿠키: `csrftoken` → `ls_csrftoken`
+- **설정 방법**: 환경변수로 커스터마이징 가능
+  - `SESSION_COOKIE_NAME` (기본값: `ls_sessionid`)
+  - `CSRF_COOKIE_NAME` (기본값: `ls_csrftoken`)
+- **호환성**: 기존 세션은 자동으로 만료되고 새 쿠키로 재생성
+- **파일**:
+  - `config/label_studio.py` (line 129-130 추가)
+  - `label-studio-sso-app/backend/server.js` (clearSessionCookies 함수 업데이트)
+
 ## [1.20.0-sso.12] - 2025-10-29
 
 ### Fixed
