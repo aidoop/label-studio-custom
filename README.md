@@ -97,7 +97,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.14
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.17
 
     depends_on:
       - postgres
