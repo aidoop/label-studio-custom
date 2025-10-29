@@ -79,8 +79,6 @@
     (function() {
       'use strict';
 
-      console.log('[hideHeader Fix] Initializing...');
-
       // Function to check hideHeader parameter
       function shouldHideHeader() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -92,8 +90,6 @@
         const hideHeader = shouldHideHeader();
 
         if (hideHeader) {
-          console.log('[hideHeader Fix] Applying hideHeader=true');
-
           // Add CSS to hide the header with very aggressive selectors
           if (!document.getElementById('hide-header-style')) {
             const style = document.createElement('style');
@@ -131,7 +127,6 @@
             `;
 
             document.head.appendChild(style);
-            console.log('[hideHeader Fix] CSS injected');
           }
         }
       }
@@ -160,7 +155,6 @@
 
       // Apply after window load (React app fully loaded)
       window.addEventListener('load', function() {
-        console.log('[hideHeader Fix] Window loaded, reapplying...');
         applyHideHeader();
         forceHeaderHeightToZero();
       });
@@ -174,7 +168,6 @@
           count++;
           if (count >= 50) { // 50 * 100ms = 5 seconds
             clearInterval(intervalId);
-            console.log('[hideHeader Fix] Stopped forcing CSS variable');
           }
         }, 100);
       }
@@ -193,8 +186,6 @@
         childList: true,
         subtree: true
       });
-
-      console.log('[hideHeader Fix] Initialized successfully');
     })();
   </script>
 
