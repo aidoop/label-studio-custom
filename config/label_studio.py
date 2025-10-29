@@ -124,6 +124,11 @@ DEBUG_PROPAGATE_EXCEPTIONS = get_bool_env('DEBUG_PROPAGATE_EXCEPTIONS', False)
 # 세션 및 쿠키 설정
 # ==============================================================================
 
+# 쿠키 이름 설정 (다른 애플리케이션과의 충돌 방지)
+# Label Studio 고유의 쿠키 이름을 사용하여 같은 도메인의 다른 Django 앱과 충돌 방지
+SESSION_COOKIE_NAME = get_env('SESSION_COOKIE_NAME', 'ls_sessionid')
+CSRF_COOKIE_NAME = get_env('CSRF_COOKIE_NAME', 'ls_csrftoken')
+
 # HTTPS 환경에서만 세션 쿠키 전송
 SESSION_COOKIE_SECURE = get_bool_env('SESSION_COOKIE_SECURE', False)
 
