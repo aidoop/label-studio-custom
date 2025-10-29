@@ -13,6 +13,7 @@
 ## 주요 기능
 
 ### 1. SSO 인증 (Native JWT)
+
 - **label-studio-sso v6.0.7** 통합 (커스텀 빌드)
 - JWT 토큰 기반 초기 인증
 - **JWT → Django Session 전환**: 성능 최적화
@@ -26,30 +27,35 @@
 - 사용자 자동 생성
 
 ### 2. hideHeader 기능
+
 - iframe 임베딩 시 헤더 완전 제거
 - URL 파라미터 `?hideHeader=true` 지원
 - JavaScript로 CSS 변수 강제 적용
 - 전체 화면 활용 (100vh)
 
 ### 3. Annotation 소유권 제어
+
 - 사용자는 자신의 annotation만 수정/삭제 가능
 - Django REST Framework permission 기반
 - API 레벨 보안 (Postman, curl 등 직접 호출 차단)
 - Admin 계정은 모든 annotation 접근 가능
 
 ### 4. Webhook Payload 커스터마이징
+
 - Annotation 이벤트 webhook에 사용자 정보 자동 추가
 - `completed_by_info` 필드로 사용자 상세 정보 제공
 - `is_superuser` 플래그로 관리자/일반 사용자 구분
 - MLOps 시스템에서 별도 API 호출 없이 사용자 정보 확인 가능
 
 ### 5. Admin User Management API
+
 - **Superuser 생성 API**: Admin 권한으로 프로그래밍 방식으로 Superuser 생성 가능
 - **Superuser 승격 API**: 기존 일반 사용자를 Superuser로 승격
 - REST API 기반으로 자동화 및 스크립팅 지원
 - Organization 멤버십 자동 추가 및 API 토큰 자동 생성
 
 ### 6. Project model_version 유효성 검증 우회
+
 - **문제**: Label Studio 1.20.0에서 Project 수정 시 `model_version` 필드에 대한 과도한 검증
   - Project 생성 시: model_version 자유롭게 저장 가능 ✅
   - Project 수정 시: "Model version doesn't exist either as live model or as static predictions" 오류 ❌
@@ -58,6 +64,7 @@
 - **효과**: PATCH `/api/projects/{id}/` 요청 시 어떤 model_version 값도 자유롭게 저장 가능
 
 ### 7. Custom Export API (MLOps 통합)
+
 - **목적**: MLOps 시스템의 모델 학습 및 성능 계산을 위한 필터링된 Task Export
 - **구현 방식**: Label Studio 1.20.0 오리지널 Serializer 사용
   - `PredictionSerializer` - 표준 prediction 형식
@@ -79,7 +86,7 @@
 ### Docker Hub에서 사용
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -90,7 +97,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.12
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.14
 
     depends_on:
       - postgres
@@ -149,47 +156,50 @@ docker run -p 8080:8080 \
 
 ### 필수 환경 변수
 
-| 변수 | 설명 | 기본값 |
-|------|------|--------|
-| `DJANGO_DB` | 데이터베이스 타입 (`default` 또는 `sqlite`) | `default` |
-| `POSTGRES_HOST` | PostgreSQL 호스트 | `postgres` |
-| `POSTGRES_DB` | PostgreSQL 데이터베이스명 | `labelstudio` |
-| `POSTGRES_USER` | PostgreSQL 사용자명 | `postgres` |
-| `POSTGRES_PASSWORD` | PostgreSQL 비밀번호 | - |
+| 변수                | 설명                                        | 기본값        |
+| ------------------- | ------------------------------------------- | ------------- |
+| `DJANGO_DB`         | 데이터베이스 타입 (`default` 또는 `sqlite`) | `default`     |
+| `POSTGRES_HOST`     | PostgreSQL 호스트                           | `postgres`    |
+| `POSTGRES_DB`       | PostgreSQL 데이터베이스명                   | `labelstudio` |
+| `POSTGRES_USER`     | PostgreSQL 사용자명                         | `postgres`    |
+| `POSTGRES_PASSWORD` | PostgreSQL 비밀번호                         | -             |
 
 ### SSO 설정
 
-| 변수 | 설명 | 기본값 |
-|------|------|--------|
-| `JWT_SSO_NATIVE_USER_ID_CLAIM` | JWT 토큰의 사용자 ID claim | `user_id` |
-| `JWT_SSO_COOKIE_NAME` | JWT 토큰 쿠키 이름 | `ls_auth_token` |
-| `JWT_SSO_TOKEN_PARAM` | JWT 토큰 URL 파라미터 | `token` |
-| `SSO_TOKEN_EXPIRY` | 토큰 만료 시간(초) | `600` |
-| `SSO_AUTO_CREATE_USERS` | 사용자 자동 생성 여부 | `true` |
+| 변수                           | 설명                       | 기본값          |
+| ------------------------------ | -------------------------- | --------------- |
+| `JWT_SSO_NATIVE_USER_ID_CLAIM` | JWT 토큰의 사용자 ID claim | `user_id`       |
+| `JWT_SSO_COOKIE_NAME`          | JWT 토큰 쿠키 이름         | `ls_auth_token` |
+| `JWT_SSO_TOKEN_PARAM`          | JWT 토큰 URL 파라미터      | `token`         |
+| `SSO_TOKEN_EXPIRY`             | 토큰 만료 시간(초)         | `600`           |
+| `SSO_AUTO_CREATE_USERS`        | 사용자 자동 생성 여부      | `true`          |
 
 ### 쿠키 설정 (서브도메인 공유)
 
-| 변수 | 설명 | 예시 |
-|------|------|------|
+| 변수                    | 설명             | 예시                 |
+| ----------------------- | ---------------- | -------------------- |
 | `SESSION_COOKIE_DOMAIN` | 세션 쿠키 도메인 | `.nubison.localhost` |
-| `CSRF_COOKIE_DOMAIN` | CSRF 쿠키 도메인 | `.nubison.localhost` |
+| `CSRF_COOKIE_DOMAIN`    | CSRF 쿠키 도메인 | `.nubison.localhost` |
 
 ### iframe 임베딩 설정
 
-| 변수 | 설명 | 기본값 | 가능한 값 |
-|------|------|--------|-----------|
+| 변수              | 설명               | 기본값           | 가능한 값            |
+| ----------------- | ------------------ | ---------------- | -------------------- |
 | `X_FRAME_OPTIONS` | iframe 임베딩 제어 | 설정 안함 (허용) | `DENY`, `SAMEORIGIN` |
 
 **설명:**
+
 - **설정 안함** (권장): 모든 도메인에서 iframe 임베딩 허용
 - `DENY`: iframe 임베딩 완전 차단
 - `SAMEORIGIN`: 같은 도메인에서만 허용
 
 **기본 동작:**
+
 - 환경변수를 설정하지 않으면 **자동으로 iframe 임베딩이 허용**됩니다
 - Django의 기본 `SAMEORIGIN` 제약이 제거됩니다
 
 **사용 예시:**
+
 ```yaml
 # iframe 임베딩 차단이 필요한 경우에만 설정
 environment:
@@ -200,10 +210,10 @@ environment:
 
 ### 선택 환경 변수
 
-| 변수 | 설명 | 기본값 |
-|------|------|--------|
-| `DEBUG` | 디버그 모드 | `false` |
-| `LOG_LEVEL` | 로그 레벨 | `INFO` |
+| 변수                | 설명                    | 기본값                  |
+| ------------------- | ----------------------- | ----------------------- |
+| `DEBUG`             | 디버그 모드             | `false`                 |
+| `LOG_LEVEL`         | 로그 레벨               | `INFO`                  |
 | `LABEL_STUDIO_HOST` | Label Studio 호스트 URL | `http://localhost:8080` |
 
 ## 커스터마이징 상세
@@ -217,6 +227,7 @@ http://label.yourdomain.com:8080/projects/1?hideHeader=true
 ```
 
 **구현 방식**:
+
 - `custom-templates/base.html`에서 JavaScript로 CSS 변수 강제 설정
 - `--header-height: 0px` 100ms마다 5초간 적용 (React SPA 대응)
 
@@ -263,6 +274,7 @@ Frontend → Backend → Label Studio API
 ```
 
 **성능 최적화**:
+
 - **첫 요청**: JWT 검증 + Session 생성 + JWT 삭제
 - **이후 요청**: Session만 사용 (JWT 검증 불필요)
 - **사용자 전환**: 새 JWT → iframe 재생성 → 새 Session
@@ -274,6 +286,7 @@ Label Studio의 webhook payload에 **사용자 상세 정보**를 자동으로 �
 #### 구현 방식
 
 **patch_webhooks.py 스크립트**가 Docker 빌드 시 Label Studio 소스 코드를 직접 패치:
+
 ```dockerfile
 COPY patch_webhooks.py /tmp/patch_webhooks.py
 RUN python3 /tmp/patch_webhooks.py
@@ -286,25 +299,28 @@ RUN python3 /tmp/patch_webhooks.py
 #### Payload 비교
 
 **기본 Label Studio**:
+
 ```json
 {
   "action": "ANNOTATION_CREATED",
   "annotation": {
     "id": 17,
-    "completed_by": 1,  // ID만 제공
+    "completed_by": 1, // ID만 제공
     "task": 19
   }
 }
 ```
 
 **패치 적용 후**:
+
 ```json
 {
   "action": "ANNOTATION_CREATED",
   "annotation": {
     "id": 17,
     "completed_by": 1,
-    "completed_by_info": {     // ✨ 자동 추가
+    "completed_by_info": {
+      // ✨ 자동 추가
       "id": 1,
       "email": "user@example.com",
       "username": "user1",
@@ -332,6 +348,7 @@ def handle_annotation_webhook(request):
 ```
 
 **주요 이점**:
+
 - ✅ **API 호출 불필요**: User 정보가 payload에 포함
 - ✅ **실시간 필터링**: superuser 여부로 즉시 구분
 - ✅ **성능 향상**: 별도 네트워크 요청 없음
@@ -347,19 +364,21 @@ Label Studio의 기본 API로는 보안상 이유로 superuser를 생성할 수 
 **권한**: Admin 사용자만 접근 가능 (IsAdminUser)
 
 **Request Body**:
+
 ```json
 {
   "email": "newadmin@example.com",
   "password": "secure_password123",
-  "username": "newadmin",           // optional, defaults to email
-  "first_name": "Admin",             // optional
-  "last_name": "User",               // optional
-  "create_token": true,              // optional, defaults to true
-  "add_to_organization": 1           // optional, organization ID
+  "username": "newadmin", // optional, defaults to email
+  "first_name": "Admin", // optional
+  "last_name": "User", // optional
+  "create_token": true, // optional, defaults to true
+  "add_to_organization": 1 // optional, organization ID
 }
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -382,6 +401,7 @@ Label Studio의 기본 API로는 보안상 이유로 superuser를 생성할 수 
 ```
 
 **사용 예시**:
+
 ```bash
 curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/create-superuser" \
   -H "Authorization: Token YOUR_ADMIN_TOKEN" \
@@ -403,6 +423,7 @@ curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/create-superuser
 **권한**: Admin 사용자만 접근 가능 (IsAdminUser)
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -417,6 +438,7 @@ curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/create-superuser
 ```
 
 **사용 예시**:
+
 ```bash
 curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/2/promote-to-superuser" \
   -H "Authorization: Token YOUR_ADMIN_TOKEN" \
@@ -430,6 +452,7 @@ curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/2/promote-to-sup
 **권한**: Admin 사용자만 접근 가능 (IsAdminUser)
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -444,6 +467,7 @@ curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/2/promote-to-sup
 ```
 
 **사용 예시**:
+
 ```bash
 curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/3/demote-from-superuser" \
   -H "Authorization: Token YOUR_ADMIN_TOKEN" \
@@ -451,10 +475,12 @@ curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/3/demote-from-su
 ```
 
 **보안 기능**:
+
 - ⚠️ **자기 자신 해제 불가**: 자신의 Superuser 권한은 해제할 수 없음
 - ✅ **실수 방지**: 마지막 Admin이 실수로 권한을 잃는 것을 방지
 
 **활용 시나리오**:
+
 - CI/CD 파이프라인에서 자동으로 Admin 계정 생성
 - 프로비저닝 스크립트에서 초기 사용자 설정
 - 사용자 관리 자동화 워크플로우
@@ -467,6 +493,7 @@ curl -X POST "http://labelstudio.yourdomain.com/api/admin/users/3/demote-from-su
 #### 문제 상황 (Label Studio 1.20.0 기본 동작)
 
 **Project 생성 시**: ✅ 정상 작동
+
 ```bash
 curl -X POST "http://localhost:8080/api/projects/" \
   -H "Authorization: Token YOUR_TOKEN" \
@@ -478,6 +505,7 @@ curl -X POST "http://localhost:8080/api/projects/" \
 ```
 
 **Project 수정 시**: ❌ 오류 발생
+
 ```bash
 curl -X PATCH "http://localhost:8080/api/projects/11/" \
   -H "Authorization: Token YOUR_TOKEN" \
@@ -506,6 +534,7 @@ curl -X PATCH "http://localhost:8080/api/projects/11/" \
 이 커스텀 이미지는 `ProjectSerializer`의 `validate_model_version` 메서드를 오버라이드하여 검증을 우회합니다.
 
 **Project 수정 시**: ✅ 정상 작동
+
 ```bash
 curl -X PATCH "http://localhost:8080/api/projects/11/" \
   -H "Authorization: Token YOUR_TOKEN" \
@@ -524,11 +553,13 @@ curl -X PATCH "http://localhost:8080/api/projects/11/" \
 ```
 
 **주요 이점**:
+
 - ✅ **일관된 동작**: 생성과 수정 시 동일한 규칙 적용
 - ✅ **외부 시스템 연동**: Label Studio에 없는 모델 버전 ID도 저장 가능
 - ✅ **MLOps 통합**: 모델 성능 추적 시 Project 단위 버전 관리
 
 **활용 시나리오**:
+
 ```python
 # MLOps 시스템에서 모델 학습 완료 후 Project에 버전 기록
 import requests
@@ -549,6 +580,7 @@ update_project_model_version(project_id=11, model_version=model_version)
 ```
 
 **구현 상세**:
+
 - **파일**: `custom-api/projects.py`
 - **방식**: `ProjectSerializer` 상속 후 `validate_model_version()` 오버라이드
 - **URL**: `api/projects/<int:pk>/` (Label Studio 기본 URL과 동일)

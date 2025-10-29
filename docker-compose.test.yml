@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 # ==============================================================================
 # Label Studio Custom Image - Local Testing Environment
@@ -34,7 +34,7 @@ services:
       - postgres_test_data:/var/lib/postgresql/data
 
     ports:
-      - "5433:5432"  # 5433으로 매핑 (기존 PostgreSQL과 충돌 방지)
+      - "5433:5432" # 5433으로 매핑 (기존 PostgreSQL과 충돌 방지)
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -50,10 +50,13 @@ services:
   # Label Studio Custom Image (로컬 빌드)
   # ==============================================================================
   labelstudio:
-    # 현재 디렉토리의 Dockerfile로 빌드
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # GitHub Container Registry의 v1.20.0-sso.14 이미지 사용
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.14
+
+    # 로컬 빌드로 되돌리려면 아래 주석 해제
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
 
     container_name: label-studio-custom-test
 
@@ -107,7 +110,7 @@ services:
       - labelstudio_test_data:/label-studio/data
 
     ports:
-      - "8081:8080"  # 8081으로 매핑 (기존 Label Studio와 충돌 방지)
+      - "8081:8080" # 8081으로 매핑 (기존 Label Studio와 충돌 방지)
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
