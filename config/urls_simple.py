@@ -17,10 +17,10 @@ urlpatterns = [
     re_path(r'^$', views.main, name='main'),
 
     # Service Worker
-    re_path(r'^sw\.js$', views.static_file_with_host_resolver('js/sw.js', content_type='text/javascript')),
+    re_path(r'^sw\.js$', views.static_file_with_host_resolver('static_build/js/sw.js', content_type='text/javascript')),
     re_path(
         r'^sw-fallback\.js$',
-        views.static_file_with_host_resolver('js/sw-fallback.js', content_type='text/javascript'),
+        views.static_file_with_host_resolver('static_build/js/sw-fallback.js', content_type='text/javascript'),
     ),
 
     # Favicon
