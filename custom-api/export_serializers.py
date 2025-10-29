@@ -21,18 +21,16 @@ class CustomExportRequestSerializer(serializers.Serializer):
     )
 
     # 선택 필드 - 날짜 범위 필터
-    search_from = serializers.CharField(
+    search_from = serializers.DateTimeField(
         required=False,
-        allow_blank=True,
         allow_null=True,
-        help_text="검색 시작일 (format: yyyy-mm-dd hh:mi:ss) - task.data.source_created_dt 기준"
+        help_text="검색 시작일 (format: yyyy-mm-dd hh:mi:ss 또는 ISO 8601) - task.data.source_created_dt 기준"
     )
 
-    search_to = serializers.CharField(
+    search_to = serializers.DateTimeField(
         required=False,
-        allow_blank=True,
         allow_null=True,
-        help_text="검색 종료일 (format: yyyy-mm-dd hh:mi:ss) - task.data.source_created_dt 기준"
+        help_text="검색 종료일 (format: yyyy-mm-dd hh:mi:ss 또는 ISO 8601) - task.data.source_created_dt 기준"
     )
 
     # 선택 필드 - 모델 버전 필터

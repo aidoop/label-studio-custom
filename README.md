@@ -90,7 +90,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.11
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.12
 
     depends_on:
       - postgres
@@ -559,6 +559,8 @@ update_project_model_version(project_id=11, model_version=model_version)
 ```
 label-studio-custom/
 ├── Dockerfile                      # 멀티스테이지 빌드
+├── Makefile                        # 개발/테스트 편의 명령어
+├── docker-compose.test.yml         # 테스트 환경 설정
 │
 ├── config/                         # Django 설정
 │   ├── label_studio.py            # SSO 통합 설정
@@ -569,28 +571,30 @@ label-studio-custom/
 │   ├── apps.py
 │   ├── permissions.py
 │   ├── mixins.py
-│   └── tests.py
+│   └── tests.py                   # 권한 관련 테스트
 │
 ├── custom-api/                     # API 오버라이드 및 확장
 │   ├── __init__.py
+│   ├── export.py                  # Custom Export API
+│   ├── export_serializers.py      # Export Serializers
 │   ├── annotations.py             # Annotation 소유권 API
 │   ├── projects.py                # Project model_version 검증 우회
 │   ├── admin_users.py             # Admin User Management API
+│   ├── tests.py                   # API 테스트 (17개)
 │   └── urls.py
-│
-├── patch_webhooks.py               # Webhook payload 커스터마이징 패치
 │
 ├── custom-templates/               # 템플릿 커스터마이징
 │   └── base.html                  # hideHeader 기능
 │
-├── scripts/                        # 초기화 스크립트
-│   ├── create_initial_users.py
-│   └── init_users.sh
-│
-├── tests/                          # 통합 테스트
-│   └── test_integration.py
+├── scripts/                        # 스크립트 모음
+│   ├── patch_webhooks.py          # Webhook payload enrichment 패치
+│   ├── run_tests.sh               # 전체 테스트 실행
+│   ├── run_quick_test.sh          # 빠른 테스트 실행
+│   ├── create_initial_users.py    # 초기 사용자 생성
+│   └── init_users.sh              # 사용자 초기화
 │
 ├── docs/                           # 상세 문서
+│   ├── CUSTOM_EXPORT_API_GUIDE.md # Custom Export API 가이드
 │   ├── FEATURES.md
 │   ├── DEPLOYMENT.md
 │   └── CUSTOMIZATION_GUIDE.md
@@ -604,15 +608,55 @@ label-studio-custom/
 
 ### 로컬 테스트
 
+#### Makefile 사용 (권장)
+
 ```bash
-# docker-compose.test.yml로 테스트
+# 사용 가능한 명령어 확인
+make help
+
+# 전체 테스트 실행 (환경 시작부터)
+make test
+
+# 환경이 이미 실행 중일 때 빠른 테스트
+make test-quick
+
+# 특정 테스트만 실행
+make test-date      # 날짜 필터 테스트
+make test-timezone  # 타임존 테스트
+make test-kst       # KST 타임존 테스트
+
+# Docker 관리
+make up             # 환경 시작
+make down           # 환경 중지
+make logs           # 로그 확인
+make clean          # 모든 컨테이너/볼륨 삭제
+```
+
+#### 직접 실행
+
+```bash
+# 전체 테스트 실행
+bash scripts/run_tests.sh
+
+# 특정 테스트만 실행
+bash scripts/run_quick_test.sh test_export_with_date_filter
+
+# 모든 테스트 목록 확인
+bash scripts/run_quick_test.sh
+```
+
+#### 수동 테스트
+
+```bash
+# 환경 시작
 docker compose -f docker-compose.test.yml up -d
 
 # 로그 확인
 docker compose -f docker-compose.test.yml logs -f labelstudio
 
 # 테스트 실행
-docker compose -f docker-compose.test.yml exec labelstudio pytest tests/
+docker compose -f docker-compose.test.yml exec labelstudio \
+  bash -c "cd /label-studio/label_studio && python manage.py test custom_api.tests.CustomExportAPITest --verbosity=2"
 ```
 
 ### 이미지 빌드 및 배포

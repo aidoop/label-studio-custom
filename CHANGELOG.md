@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.12] - 2025-10-29
+
+### Fixed
+
+#### Static Files Collection 추가
+- **문제**: 빌드 시 정적 파일 수집(`collectstatic`)이 누락되어 `sw.js`, `main.js` 등 JavaScript 파일 404 오류 발생
+- **해결**: Dockerfile에 `python manage.py collectstatic --noinput` 단계 추가
+- **영향**: Label Studio 웹 인터페이스 정상 작동
+- **수집된 파일**: 349개 정적 파일 (JavaScript, CSS, images, fonts)
+- **파일**: `Dockerfile` (line 38-42)
+
+#### Custom Export API 날짜 필터 타임존 처리
+- **문제**: `search_from`, `search_to` 필터가 작동하지 않음
+- **원인**:
+  - Serializer가 `CharField` 사용 (타임존 정보 손실)
+  - PostgreSQL 쿼리에서 `::timestamp` 사용 (타임존 무시)
+- **해결**:
+  - `DateTimeField`로 변경하여 ISO 8601 타임존 정보 보존
+  - `::timestamptz` 사용으로 정확한 타임존 비교
+  - `.isoformat()` 메서드로 타임존 정보 포함한 문자열 생성
+- **지원 형식**:
+  - ISO 8601 with timezone: `2025-01-15T10:30:45+09:00` (권장)
+  - ISO 8601 without timezone: `2025-01-15T10:30:45` (UTC로 간주)
+- **테스트**: 5개 타임존 테스트 추가 (총 17개 테스트 통과)
+- **파일**:
+  - `custom-api/export_serializers.py` (line 24-34)
+  - `custom-api/export.py` (line 155-173)
+  - `custom-api/tests.py` (5개 타임존 테스트 추가)
+  - `docs/CUSTOM_EXPORT_API_GUIDE.md` (타임존 처리 문서화)
+
+### Changed
+
+#### 프로젝트 파일 구조 개선
+- **목적**: 스크립트 파일 통합 및 개발 편의성 향상
+- **변경 사항**:
+  - 모든 스크립트를 `scripts/` 디렉토리로 이동
+  - `Makefile` 추가 (테스트 명령어 간소화)
+  - `README.md` 업데이트 (새로운 디렉토리 구조 및 테스트 방법)
+- **이동된 파일**:
+  - `run_tests.sh` → `scripts/run_tests.sh`
+  - `run_quick_test.sh` → `scripts/run_quick_test.sh`
+  - `patch_webhooks.py` → `scripts/patch_webhooks.py`
+- **새로운 명령어**: `make test`, `make test-quick`, `make test-date`, `make test-timezone` 등
+
 ## [1.20.0-sso.11] - 2025-10-28
 
 ### Changed

@@ -6,12 +6,15 @@ Label Studio 1.20.0 기반 커스텀 Export API 테스트
 
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
 from projects.models import Project
 from tasks.models import Task, Annotation, Prediction
 from organizations.models import Organization
 import json
+from datetime import datetime
+import pytz
 
 User = get_user_model()
 
@@ -378,3 +381,152 @@ class CustomExportAPITest(TestCase):
         data = response.json()
         self.assertEqual(data['total'], 0)
         self.assertEqual(len(data['tasks']), 0)
+
+    def test_export_with_timezone_aware_dates(self):
+        """타임존이 포함된 날짜 필터링"""
+        # Task 생성 (ISO 8601 형식, 타임존 포함)
+        task1 = self._create_task(
+            {'text': 'Task 1'},
+            source_created_dt='2025-01-15T10:00:00+09:00'  # 한국 시간
+        )
+        task2 = self._create_task(
+            {'text': 'Task 2'},
+            source_created_dt='2025-01-15T05:00:00+00:00'  # UTC (한국 시간 14:00)
+        )
+        task3 = self._create_task(
+            {'text': 'Task 3'},
+            source_created_dt='2025-01-16T00:00:00+09:00'  # 한국 시간
+        )
+
+        # UTC 기준으로 필터링: 2025-01-15 00:00:00 UTC ~ 2025-01-15 23:59:59 UTC
+        response = self.client.post(self.export_url, {
+            'project_id': self.project.id,
+            'search_from': '2025-01-15T00:00:00Z',
+            'search_to': '2025-01-15T23:59:59Z'
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # task1: 2025-01-15T10:00:00+09:00 = 2025-01-15T01:00:00Z (포함)
+        # task2: 2025-01-15T05:00:00+00:00 = 2025-01-15T05:00:00Z (포함)
+        # task3: 2025-01-16T00:00:00+09:00 = 2025-01-15T15:00:00Z (포함)
+        self.assertEqual(data['total'], 3)
+
+    def test_export_with_kst_timezone_filter(self):
+        """한국 시간대(KST) 필터링"""
+        # Task 생성
+        task1 = self._create_task(
+            {'text': 'Task 1'},
+            source_created_dt='2025-01-15T08:00:00+09:00'  # 한국 시간 오전 8시
+        )
+        task2 = self._create_task(
+            {'text': 'Task 2'},
+            source_created_dt='2025-01-15T12:00:00+09:00'  # 한국 시간 오후 12시
+        )
+        task3 = self._create_task(
+            {'text': 'Task 3'},
+            source_created_dt='2025-01-15T18:00:00+09:00'  # 한국 시간 오후 6시
+        )
+
+        # 한국 시간 기준 오전 9시 ~ 오후 5시 필터링
+        response = self.client.post(self.export_url, {
+            'project_id': self.project.id,
+            'search_from': '2025-01-15T09:00:00+09:00',
+            'search_to': '2025-01-15T17:00:00+09:00'
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['total'], 1)
+        self.assertEqual(data['tasks'][0]['data']['text'], 'Task 2')
+
+    def test_export_with_naive_datetime(self):
+        """타임존 없는 날짜 필터링 (UTC로 간주)"""
+        # Task 생성 (타임존 없음)
+        task1 = self._create_task(
+            {'text': 'Task 1'},
+            source_created_dt='2025-01-15 10:00:00'
+        )
+        task2 = self._create_task(
+            {'text': 'Task 2'},
+            source_created_dt='2025-01-15 14:00:00'
+        )
+
+        # 타임존 없는 필터 (UTC로 간주)
+        response = self.client.post(self.export_url, {
+            'project_id': self.project.id,
+            'search_from': '2025-01-15 12:00:00',
+            'search_to': '2025-01-15 23:59:59'
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['total'], 1)
+        self.assertEqual(data['tasks'][0]['data']['text'], 'Task 2')
+
+    def test_export_with_mixed_timezone_formats(self):
+        """다양한 타임존 형식 혼합"""
+        # 다양한 형식으로 Task 생성
+        task1 = self._create_task(
+            {'text': 'Task 1'},
+            source_created_dt='2025-01-15T10:00:00+09:00'  # ISO 8601 with KST
+        )
+        task2 = self._create_task(
+            {'text': 'Task 2'},
+            source_created_dt='2025-01-15T05:00:00Z'       # ISO 8601 with UTC
+        )
+        task3 = self._create_task(
+            {'text': 'Task 3'},
+            source_created_dt='2025-01-15 03:00:00'        # Naive (UTC로 간주)
+        )
+
+        # UTC 기준 02:00:00 ~ 06:00:00 필터링
+        response = self.client.post(self.export_url, {
+            'project_id': self.project.id,
+            'search_from': '2025-01-15T02:00:00Z',
+            'search_to': '2025-01-15T06:00:00Z'
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # task1: 2025-01-15T10:00:00+09:00 = 01:00:00Z (제외)
+        # task2: 2025-01-15T05:00:00Z = 05:00:00Z (포함)
+        # task3: 2025-01-15 03:00:00 = 03:00:00Z (포함)
+        self.assertEqual(data['total'], 2)
+        task_texts = [t['data']['text'] for t in data['tasks']]
+        self.assertIn('Task 2', task_texts)
+        self.assertIn('Task 3', task_texts)
+        self.assertNotIn('Task 1', task_texts)
+
+    def test_export_date_boundary_conditions(self):
+        """날짜 경계 조건 테스트"""
+        # 경계값 Task 생성
+        task1 = self._create_task(
+            {'text': 'Task 1'},
+            source_created_dt='2025-01-15T00:00:00Z'  # 정확히 시작 시간
+        )
+        task2 = self._create_task(
+            {'text': 'Task 2'},
+            source_created_dt='2025-01-15T23:59:59Z'  # 정확히 종료 시간
+        )
+        task3 = self._create_task(
+            {'text': 'Task 3'},
+            source_created_dt='2025-01-16T00:00:00Z'  # 종료 시간 1초 후
+        )
+
+        # 경계값 테스트
+        response = self.client.post(self.export_url, {
+            'project_id': self.project.id,
+            'search_from': '2025-01-15T00:00:00Z',
+            'search_to': '2025-01-15T23:59:59Z'
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['total'], 2)
+        task_texts = [t['data']['text'] for t in data['tasks']]
+        self.assertIn('Task 1', task_texts)
+        self.assertIn('Task 2', task_texts)
+        self.assertNotIn('Task 3', task_texts)

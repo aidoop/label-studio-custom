@@ -32,8 +32,14 @@ COPY custom-templates/base.html /label-studio/label_studio/templates/base.html
 
 # Webhook payload enrichment 패치 적용
 # Label Studio의 실제 webhooks/utils.py에 completed_by_info 추가 로직 삽입
-COPY patch_webhooks.py /tmp/patch_webhooks.py
+COPY scripts/patch_webhooks.py /tmp/patch_webhooks.py
 RUN python3 /tmp/patch_webhooks.py
+
+# 정적 파일 수집
+# Label Studio의 JavaScript, CSS 등 정적 파일을 수집하여 /label-studio/label_studio/core/ 디렉토리로 복사
+# 이 과정이 없으면 sw.js, main.js 등의 파일을 찾을 수 없어 404 오류 발생
+RUN cd /label-studio/label_studio && \
+    python3 manage.py collectstatic --noinput
 
 # 초기화 스크립트 복사
 COPY --chmod=755 scripts /scripts

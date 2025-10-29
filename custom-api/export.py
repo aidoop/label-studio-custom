@@ -6,6 +6,8 @@ MLOps 시스템의 모델 학습 및 성능 계산을 위한 필터링된 Task E
 """
 
 from django.db.models import Q, Prefetch
+from django.db.models.functions import Cast
+from django.db.models import DateTimeField as ModelDateTimeField
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -151,14 +153,23 @@ class CustomExportAPI(APIView):
         queryset = Task.objects.filter(project_id=project_id)
 
         # 날짜 범위 필터 (task.data->>'source_created_dt')
+        # PostgreSQL JSONField에서 날짜 문자열을 비교하기 위해
+        # timestamptz로 변환하여 타임존을 고려한 비교 수행
         if search_from:
-            queryset = queryset.filter(
-                data__source_created_dt__gte=search_from
+            # Django의 DateTimeField는 timezone-aware datetime 반환
+            # UTC로 변환하여 ISO 8601 형식 문자열로 저장
+            # PostgreSQL의 timestamptz는 타임존을 자동으로 처리
+            search_from_str = search_from.isoformat()
+            queryset = queryset.extra(
+                where=["(data->>'source_created_dt')::timestamptz >= %s::timestamptz"],
+                params=[search_from_str]
             )
 
         if search_to:
-            queryset = queryset.filter(
-                data__source_created_dt__lte=search_to
+            search_to_str = search_to.isoformat()
+            queryset = queryset.extra(
+                where=["(data->>'source_created_dt')::timestamptz <= %s::timestamptz"],
+                params=[search_to_str]
             )
 
         # 모델 버전 필터 (prediction.model_version)

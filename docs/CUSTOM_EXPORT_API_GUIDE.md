@@ -55,8 +55,8 @@ Authorization: Bearer <jwt-token>
 | 파라미터 | 타입 | 필수 | 설명 |
 |---------|------|------|------|
 | `project_id` | Integer | ✅ | Label Studio 프로젝트 ID |
-| `search_from` | String | ❌ | 검색 시작일 (format: `yyyy-mm-dd hh:mi:ss`)<br>task.data.source_created_dt >= search_from |
-| `search_to` | String | ❌ | 검색 종료일 (format: `yyyy-mm-dd hh:mi:ss`)<br>task.data.source_created_dt <= search_to |
+| `search_from` | DateTime | ❌ | 검색 시작일 (format: `yyyy-mm-dd hh:mi:ss` 또는 ISO 8601)<br>task.data.source_created_dt >= search_from |
+| `search_to` | DateTime | ❌ | 검색 종료일 (format: `yyyy-mm-dd hh:mi:ss` 또는 ISO 8601)<br>task.data.source_created_dt <= search_to |
 | `model_version` | String | ❌ | 추론 모델 버전<br>prediction.model_version과 일치하는 Task만 반환 |
 | `confirm_user_id` | Integer | ❌ | 승인자 User ID<br>annotation.completed_by와 일치하고 is_superuser=true인 annotation만 반환 |
 | `page` | Integer | ❌ | 페이지 번호 (1부터 시작)<br>page_size와 함께 제공되어야 함 |
@@ -335,10 +335,13 @@ tasks = fetch_all_tasks(project_id=1)
 print(f"Total fetched: {len(tasks)} tasks")
 ```
 
-### 필터링 사용
+### 필터링 사용 (타임존 고려)
 
 ```python
-# 모델 성능 계산용 Export
+from datetime import datetime, timezone
+import pytz
+
+# 방법 1: UTC 기준으로 필터링 (권장)
 response = requests.post(
     f"{LABEL_STUDIO_URL}/api/custom/export/",
     headers=headers,
@@ -346,8 +349,38 @@ response = requests.post(
         "project_id": 1,
         "model_version": "bert-v1",
         "confirm_user_id": 8,  # 승인자만
-        "search_from": "2025-01-01 00:00:00",
-        "search_to": "2025-01-31 23:59:59"
+        "search_from": "2025-01-01T00:00:00Z",  # UTC
+        "search_to": "2025-01-31T23:59:59Z"     # UTC
+    }
+)
+
+# 방법 2: 한국 시간(KST) 기준으로 필터링
+kst = pytz.timezone('Asia/Seoul')
+search_from = kst.localize(datetime(2025, 1, 1, 0, 0, 0))
+search_to = kst.localize(datetime(2025, 1, 31, 23, 59, 59))
+
+response = requests.post(
+    f"{LABEL_STUDIO_URL}/api/custom/export/",
+    headers=headers,
+    json={
+        "project_id": 1,
+        "model_version": "bert-v1",
+        "confirm_user_id": 8,
+        "search_from": search_from.isoformat(),  # "2025-01-01T00:00:00+09:00"
+        "search_to": search_to.isoformat()       # "2025-01-31T23:59:59+09:00"
+    }
+)
+
+# 방법 3: 간단한 형식 (UTC로 간주됨)
+response = requests.post(
+    f"{LABEL_STUDIO_URL}/api/custom/export/",
+    headers=headers,
+    json={
+        "project_id": 1,
+        "model_version": "bert-v1",
+        "confirm_user_id": 8,
+        "search_from": "2025-01-01 00:00:00",  # UTC로 해석
+        "search_to": "2025-01-31 23:59:59"     # UTC로 해석
     }
 )
 
@@ -491,16 +524,26 @@ send_performance_to_backend(model_version="bert-v1", accuracy=accuracy)
 1. **source_created_dt 필드**
    - Task 생성 시 `data.source_created_dt` 필드를 포함해야 날짜 필터링이 작동합니다.
    - 누비슨 시스템에서 Task 생성 시 자동으로 포함됩니다.
+   - **타임존 형식**: ISO 8601 형식 권장 (예: `2025-01-15T10:30:45+09:00`)
 
-2. **model_version 필드**
+2. **타임존 처리**
+   - **입력**: `search_from`, `search_to`는 다음 형식 지원
+     - ISO 8601 with timezone: `2025-01-15T10:30:45+09:00` (권장)
+     - ISO 8601 without timezone: `2025-01-15T10:30:45` (UTC로 간주)
+     - 일반 형식: `2025-01-15 10:30:45` (UTC로 간주)
+   - **비교**: PostgreSQL의 `timestamptz`로 변환하여 타임존을 고려한 정확한 비교
+   - **저장된 데이터**: `task.data.source_created_dt`도 ISO 8601 형식 권장
+   - **권장 사항**: 모든 날짜 데이터를 ISO 8601 형식으로 통일하여 타임존 혼란 방지
+
+3. **model_version 필드**
    - Prediction에 `model_version`을 포함해야 모델 버전 필터링이 작동합니다.
    - Task Import 시 prediction과 함께 전송하세요.
 
-3. **승인자 필터**
+4. **승인자 필터**
    - `confirm_user_id`는 `is_superuser=true`인 사용자만 필터링합니다.
    - 일반 사용자의 annotation은 포함되지 않습니다.
 
-4. **페이징**
+5. **페이징**
    - `page`와 `page_size`는 함께 제공되어야 합니다.
    - 둘 다 없으면 전체 데이터를 반환합니다.
 
