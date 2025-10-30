@@ -184,29 +184,41 @@ docker run -p 8080:8080 \
 | `SESSION_COOKIE_DOMAIN` | 세션 쿠키 도메인 | `.nubison.localhost` |
 | `CSRF_COOKIE_DOMAIN`    | CSRF 쿠키 도메인 | `.nubison.localhost` |
 
-### iframe 임베딩 설정
+### iframe 임베딩 보안 헤더 설정
 
-| 변수              | 설명               | 기본값           | 가능한 값            |
-| ----------------- | ------------------ | ---------------- | -------------------- |
-| `X_FRAME_OPTIONS` | iframe 임베딩 제어 | 설정 안함 (허용) | `DENY`, `SAMEORIGIN` |
+| 변수                      | 설명                                  | 기본값 | 예시                                                    |
+| ------------------------- | ------------------------------------- | ------ | ------------------------------------------------------- |
+| `CSP_FRAME_ANCESTORS`     | CSP frame-ancestors 설정 (권장)      | 없음   | `'self' https://console-dev.nubison.io`                 |
+| `CONTENT_SECURITY_POLICY` | 전체 CSP 정책 설정 (고급)            | 없음   | `frame-ancestors 'self' https://console.nubison.io;`    |
+| `X_FRAME_OPTIONS`         | X-Frame-Options 설정 (구형 브라우저) | 없음   | `DENY`, `SAMEORIGIN`, `ALLOW-FROM https://example.com` |
 
-**설명:**
+**권장 설정 (Content-Security-Policy):**
 
-- **설정 안함** (권장): 모든 도메인에서 iframe 임베딩 허용
-- `DENY`: iframe 임베딩 완전 차단
-- `SAMEORIGIN`: 같은 도메인에서만 허용
+```yaml
+environment:
+  # 특정 도메인만 iframe 허용 (권장)
+  CSP_FRAME_ANCESTORS: "'self' https://console-dev.nubison.io https://console.nubison.io"
 
-**기본 동작:**
-
-- 환경변수를 설정하지 않으면 **자동으로 iframe 임베딩이 허용**됩니다
-- Django의 기본 `SAMEORIGIN` 제약이 제거됩니다
+  # 구형 브라우저 지원 (폴백)
+  X_FRAME_OPTIONS: "SAMEORIGIN"
+```
 
 **사용 예시:**
 
 ```yaml
-# iframe 임베딩 차단이 필요한 경우에만 설정
+# 개발 환경 - 여러 도메인 허용
 environment:
-  X_FRAME_OPTIONS: DENY  # iframe 임베딩 차단
+  CSP_FRAME_ANCESTORS: "'self' https://console-dev.nubison.io http://localhost:4000"
+  X_FRAME_OPTIONS: "SAMEORIGIN"
+
+# 운영 환경 - 프로덕션 도메인만 허용
+environment:
+  CSP_FRAME_ANCESTORS: "'self' https://console.nubison.io"
+  X_FRAME_OPTIONS: "SAMEORIGIN"
+
+# 테스트 환경 - 모든 도메인 허용 (비권장)
+environment:
+  CSP_FRAME_ANCESTORS: "*"
   # 또는
   X_FRAME_OPTIONS: SAMEORIGIN  # 같은 도메인에서만 허용
 ```

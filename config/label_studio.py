@@ -206,35 +206,51 @@ except IOError:
     FEATURE_FLAGS_FROM_FILE = False
 
 # ==============================================================================
-# iframe 임베딩 설정
+# iframe 임베딩 보안 헤더 설정
 # ==============================================================================
 
-# X-Frame-Options 설정
-# Django 공식 방법: XFrameOptionsMiddleware 제거 또는 X_FRAME_OPTIONS 설정
-#
-# - 설정 안함 (기본값): 미들웨어 제거 → iframe 임베딩 완전 허용
-# - 'DENY': iframe 임베딩 완전 차단
-# - 'SAMEORIGIN': 같은 도메인에서만 허용
-#
-# 환경변수로 제어 가능:
-# - 설정 안함: 미들웨어 제거 (완전 허용) - 기본값
-# - X_FRAME_OPTIONS=DENY (차단)
-# - X_FRAME_OPTIONS=SAMEORIGIN (같은 도메인만)
-X_FRAME_OPTIONS_VALUE = get_env('X_FRAME_OPTIONS', 'ALLOW')  # 기본값: ALLOW
+# Django 기본 XFrameOptionsMiddleware 제거 (커스텀 미들웨어 사용)
+MIDDLEWARE = [m for m in MIDDLEWARE if m != 'django.middleware.clickjacking.XFrameOptionsMiddleware']
 
-if X_FRAME_OPTIONS_VALUE == 'ALLOW' or X_FRAME_OPTIONS_VALUE == 'None':
-    # iframe 임베딩 완전 허용 (기본값)
-    # Django 공식 방법: XFrameOptionsMiddleware 제거
-    MIDDLEWARE = [m for m in MIDDLEWARE if m != 'django.middleware.clickjacking.XFrameOptionsMiddleware']
-    # 미들웨어가 제거되었으므로 X_FRAME_OPTIONS 설정은 무시됨
-elif X_FRAME_OPTIONS_VALUE in ['DENY', 'SAMEORIGIN']:
-    # 명시적으로 설정된 경우
-    # 미들웨어는 유지하고 X_FRAME_OPTIONS 값만 설정
-    X_FRAME_OPTIONS = X_FRAME_OPTIONS_VALUE
-else:
-    # 알 수 없는 값인 경우 기본값으로 허용
-    # Django 공식 방법: XFrameOptionsMiddleware 제거
-    MIDDLEWARE = [m for m in MIDDLEWARE if m != 'django.middleware.clickjacking.XFrameOptionsMiddleware']
+# 커스텀 보안 미들웨어 추가
+MIDDLEWARE.append('config.security_middleware.ContentSecurityPolicyMiddleware')
+MIDDLEWARE.append('config.security_middleware.XFrameOptionsMiddleware')
+
+# ------------------------------------------------------------------------------
+# Content-Security-Policy (CSP) 설정 (권장)
+# ------------------------------------------------------------------------------
+# 최신 브라우저에서는 X-Frame-Options보다 우선 적용됨
+#
+# 옵션 1: frame-ancestors만 설정 (간편 모드, 권장)
+# CSP_FRAME_ANCESTORS 환경변수 사용
+#
+# 예시:
+#   CSP_FRAME_ANCESTORS="'self' https://console-dev.nubison.io https://console.nubison.io"
+#   CSP_FRAME_ANCESTORS="*"  # 모든 도메인 허용
+#   CSP_FRAME_ANCESTORS="'none'"  # 완전 차단
+#
+# 옵션 2: 전체 CSP 정책 설정 (고급)
+# CONTENT_SECURITY_POLICY 환경변수 사용
+#
+# 예시:
+#   CONTENT_SECURITY_POLICY="frame-ancestors 'self' https://console.nubison.io; default-src 'self'"
+
+CSP_FRAME_ANCESTORS = get_env('CSP_FRAME_ANCESTORS', None)
+CONTENT_SECURITY_POLICY = get_env('CONTENT_SECURITY_POLICY', None)
+
+# ------------------------------------------------------------------------------
+# X-Frame-Options 설정 (폴백용, 구형 브라우저 지원)
+# ------------------------------------------------------------------------------
+# CSP가 설정되어 있으면 최신 브라우저는 CSP를 우선 적용
+#
+# 환경변수로 제어:
+#   X_FRAME_OPTIONS=DENY        # iframe 완전 차단
+#   X_FRAME_OPTIONS=SAMEORIGIN  # 같은 도메인만 허용
+#   X_FRAME_OPTIONS=ALLOW-FROM https://console.nubison.io  # 특정 도메인 (deprecated)
+#
+# 설정하지 않으면 헤더 추가 안 됨 (기본값: CSP만 사용)
+
+X_FRAME_OPTIONS_HEADER = get_env('X_FRAME_OPTIONS', None)
 
 # ==============================================================================
 # 스토리지 설정

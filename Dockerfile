@@ -5,7 +5,7 @@ FROM heartexlabs/label-studio:1.20.0
 # 메타데이터
 LABEL maintainer="heartyoh@hatiolab.com"
 LABEL description="Label Studio 1.20.0 with label-studio-sso integration"
-LABEL version="1.20.0-sso.18"
+LABEL version="1.20.0-sso.19"
 
 # 작업 디렉토리 설정
 WORKDIR /label-studio

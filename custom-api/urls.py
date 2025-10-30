@@ -10,6 +10,7 @@ from custom_api.annotations import AnnotationAPI
 from custom_api.projects import ProjectAPI
 from custom_api.admin_users import CreateSuperuserAPI, PromoteToSuperuserAPI, DemoteFromSuperuserAPI
 from custom_api.export import CustomExportAPI
+from custom_api.users import user_detail, user_by_email
 
 app_name = 'custom_api'
 
@@ -26,4 +27,8 @@ urlpatterns = [
 
     # Custom Export API (MLOps 모델 학습 및 성능 계산용)
     path('custom/export/', CustomExportAPI.as_view(), name='custom-export'),
+
+    # User Management API (이메일 수정 지원)
+    path('users/<int:pk>/', user_detail, name='user-detail'),
+    path('users/by-email/', user_by_email, name='user-by-email'),
 ]

@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.19] - 2025-10-30
+
+### Added
+
+#### Content-Security-Policy 환경변수 지원
+- **목적**: iframe 임베딩 보안 헤더를 환경변수로 유연하게 설정
+- **기능**:
+  - `CSP_FRAME_ANCESTORS` - CSP frame-ancestors 간편 설정 (권장)
+  - `CONTENT_SECURITY_POLICY` - 전체 CSP 정책 고급 설정
+  - `X_FRAME_OPTIONS` - X-Frame-Options 설정 (구형 브라우저 지원)
+- **특징**:
+  - 서버(nginx) 설정이 우선 적용됨 (이중 설정 방지)
+  - 최신 브라우저는 CSP 우선, 구형 브라우저는 X-Frame-Options 사용
+  - 개발/운영 환경별 설정 가능
+- **사용 예시**:
+  ```yaml
+  CSP_FRAME_ANCESTORS: "'self' https://console-dev.nubison.io https://console.nubison.io"
+  X_FRAME_OPTIONS: "SAMEORIGIN"
+  ```
+- **파일**:
+  - `config/security_middleware.py` (신규)
+  - `config/label_studio.py` (line 208-253)
+  - `docs/IFRAME_SECURITY_HEADERS.md` (신규)
+
+#### 누비슨 시스템 연동 지원
+- **목적**: 누비슨 시스템의 이메일 관리 정책과 Label Studio 연동
+- **문제**: 누비슨은 서비스별로 같은 이메일 사용 가능, Label Studio는 이메일 unique 제약
+- **해결**: 이메일 포맷팅 방식 (`{서비스ID}_{이메일}`)
+- **기능**:
+  - User Update API - 이메일 수정 가능
+  - User 조회 API (이메일 기반)
+  - JWT는 user_id 기반이라 이메일 변경과 무관
+- **API 엔드포인트**:
+  - `PATCH /api/users/{id}/` - User 정보 업데이트 (이메일 수정 가능)
+  - `GET /api/users/by-email/?email={email}` - 이메일로 User 조회
+- **파일**:
+  - `custom-api/users.py` (신규)
+  - `custom-api/urls.py` (업데이트)
+  - `docs/NUBISON_INTEGRATION_GUIDE.md` (신규)
+
+### Changed
+
+#### iframe 보안 헤더 설정 개선
+- X-Frame-Options 설정을 더 유연하게 개선
+- Django 기본 XFrameOptionsMiddleware를 커스텀 미들웨어로 대체
+- 환경변수 미설정 시 헤더를 추가하지 않음 (기존: 자동 허용)
+
 ## [1.20.0-sso.18] - 2025-10-30
 
 ### Changed
