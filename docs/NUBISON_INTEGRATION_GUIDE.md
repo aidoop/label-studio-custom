@@ -32,7 +32,7 @@
 // 누비슨 시스템
 const serviceId = "s111";
 const userEmail = "gdh@gmail.com";
-const userName = "김대현";
+const userName = "홍길동";
 
 // ✅ 이메일 포맷팅
 const labelStudioEmail = `${serviceId}_${userEmail}`;  // "s111_gdh@gmail.com"
@@ -44,9 +44,9 @@ Content-Type: application/json
 
 {
   "email": "s111_gdh@gmail.com",      // ← 포맷된 이메일
-  "username": "김대현",                // ← 실제 사용자 이름
-  "first_name": "대현",
-  "last_name": "김",
+  "username": "홍길동",                // ← 실제 사용자 이름
+  "first_name": "길동",
+  "last_name": "홍",
   "password": "자동생성된비밀번호"
 }
 
@@ -54,7 +54,7 @@ Response:
 {
   "id": 123,
   "email": "s111_gdh@gmail.com",
-  "username": "김대현",
+  "username": "홍길동",
   ...
 }
 ```
@@ -130,7 +130,7 @@ Response:
 {
   "id": 123,
   "email": "s111_kim@naver.com",  // ← 이메일 변경됨
-  "username": "김대현",
+  "username": "홍길동",
   ...
 }
 ```
@@ -242,9 +242,9 @@ Authorization: Token {admin_api_token}
 {
   "id": 123,
   "email": "s111_gdh@gmail.com",
-  "username": "김대현",
-  "first_name": "대현",
-  "last_name": "김"
+  "username": "홍길동",
+  "first_name": "길동",
+  "last_name": "홍"
 }
 ```
 
@@ -270,9 +270,9 @@ Content-Type: application/json
 {
   "id": 123,
   "email": "s111_new@email.com",
-  "username": "김대현",
+  "username": "홍길동",
   "first_name": "Updated Name",
-  "last_name": "김"
+  "last_name": "홍"
 }
 ```
 
@@ -322,9 +322,9 @@ user = User.objects.get(pk=123)  # ← user_id로 검색하므로 정상 작동
 // 회원 생성 시
 {
   "email": "s111_gdh@gmail.com",     // 고유 식별자
-  "username": "김대현",               // 실제 이름 (중복 가능)
-  "first_name": "대현",
-  "last_name": "김"
+  "username": "홍길동",               // 실제 이름 (중복 가능)
+  "first_name": "길동",
+  "last_name": "홍"
 }
 ```
 
