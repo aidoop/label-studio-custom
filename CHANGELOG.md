@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.18] - 2025-10-30
+
+### Changed
+
+#### PostgreSQL 환경변수명 유연화
+- **목적**: 개발서버와 운영서버의 환경변수명 차이로 인한 배포 시 코드 수정 문제 해결
+- **변경 사항**:
+  - `POSTGRE_*` 환경변수를 우선적으로 사용
+  - 기존 `POSTGRES_*` 환경변수도 폴백으로 지원 (하위 호환성 유지)
+- **지원 환경변수**:
+  - `POSTGRE_DB` (폴백: `POSTGRES_DB`)
+  - `POSTGRE_USER` (폴백: `POSTGRES_USER`)
+  - `POSTGRE_PASSWORD` (폴백: `POSTGRES_PASSWORD`)
+  - `POSTGRE_HOST` (폴백: `POSTGRES_HOST`)
+  - `POSTGRE_PORT` (폴백: `POSTGRES_PORT`)
+- **효과**:
+  - 쿠버네티스 환경변수 변경 없이 `POSTGRE_*` 변수 사용 가능
+  - 배포 시 코드 수정 불필요
+  - 기존 환경과의 완전한 호환성 유지
+- **파일**: `config/label_studio.py` (line 36-40)
+
 ## [1.20.0-sso.17] - 2025-10-29
 
 ### Fixed

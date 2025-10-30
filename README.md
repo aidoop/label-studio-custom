@@ -97,7 +97,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.17
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.18
 
     depends_on:
       - postgres
@@ -159,10 +159,13 @@ docker run -p 8080:8080 \
 | 변수                | 설명                                        | 기본값        |
 | ------------------- | ------------------------------------------- | ------------- |
 | `DJANGO_DB`         | 데이터베이스 타입 (`default` 또는 `sqlite`) | `default`     |
-| `POSTGRES_HOST`     | PostgreSQL 호스트                           | `postgres`    |
-| `POSTGRES_DB`       | PostgreSQL 데이터베이스명                   | `labelstudio` |
-| `POSTGRES_USER`     | PostgreSQL 사용자명                         | `postgres`    |
-| `POSTGRES_PASSWORD` | PostgreSQL 비밀번호                         | -             |
+| `POSTGRE_HOST` / `POSTGRES_HOST`     | PostgreSQL 호스트 (POSTGRE_* 우선 사용)                           | `postgres`    |
+| `POSTGRE_DB` / `POSTGRES_DB`       | PostgreSQL 데이터베이스명 (POSTGRE_* 우선 사용)                   | `labelstudio` |
+| `POSTGRE_USER` / `POSTGRES_USER`     | PostgreSQL 사용자명 (POSTGRE_* 우선 사용)                         | `postgres`    |
+| `POSTGRE_PASSWORD` / `POSTGRES_PASSWORD` | PostgreSQL 비밀번호 (POSTGRE_* 우선 사용)                         | -             |
+| `POSTGRE_PORT` / `POSTGRES_PORT` | PostgreSQL 포트 (POSTGRE_* 우선 사용)                         | `5432`             |
+
+**참고**: v1.20.0-sso.18부터 `POSTGRE_*` 환경변수를 우선적으로 사용하며, 없을 경우 `POSTGRES_*`를 폴백으로 사용합니다.
 
 ### SSO 설정
 

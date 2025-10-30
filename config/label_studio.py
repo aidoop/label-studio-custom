@@ -28,15 +28,16 @@ SECRET_KEY = generate_secret_key_if_missing(BASE_DATA_DIR)
 DJANGO_DB = get_env('DJANGO_DB', DJANGO_DB_SQLITE)
 
 # PostgreSQL 설정을 환경변수로부터 직접 구성
+# POSTGRE_* 환경변수를 우선 사용하고, 없으면 POSTGRES_*를 폴백으로 사용
 if DJANGO_DB == 'default':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': get_env('POSTGRES_DB', 'labelstudio'),
-            'USER': get_env('POSTGRES_USER', 'postgres'),
-            'PASSWORD': get_env('POSTGRES_PASSWORD', 'postgres'),
-            'HOST': get_env('POSTGRES_HOST', 'postgres'),
-            'PORT': get_env('POSTGRES_PORT', '5432'),
+            'NAME': get_env('POSTGRE_DB', get_env('POSTGRES_DB', 'labelstudio')),
+            'USER': get_env('POSTGRE_USER', get_env('POSTGRES_USER', 'postgres')),
+            'PASSWORD': get_env('POSTGRE_PASSWORD', get_env('POSTGRES_PASSWORD', 'postgres')),
+            'HOST': get_env('POSTGRE_HOST', get_env('POSTGRES_HOST', 'postgres')),
+            'PORT': get_env('POSTGRE_PORT', get_env('POSTGRES_PORT', '5432')),
         }
     }
 else:
