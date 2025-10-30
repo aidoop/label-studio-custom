@@ -55,7 +55,7 @@ jobs:
 
           # Wait for Label Studio to be healthy
           echo "Waiting for Label Studio to be ready..."
-          timeout 120s bash -c 'until docker compose -f docker-compose.test.yml exec -T labelstudio curl -f http://localhost:8080/health 2>/dev/null; do sleep 5; done'
+          timeout 300s bash -c 'until docker compose -f docker-compose.test.yml exec -T labelstudio curl -f http://localhost:8080/health 2>/dev/null; do sleep 5; done'
 
       - name: Check service health
         run: |
