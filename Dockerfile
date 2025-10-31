@@ -5,7 +5,7 @@ FROM heartexlabs/label-studio:1.20.0
 # 메타데이터
 LABEL maintainer="heartyoh@hatiolab.com"
 LABEL description="Label Studio 1.20.0 with label-studio-sso integration"
-LABEL version="1.20.0-sso.19"
+LABEL version="1.20.0-sso.20"
 
 # 작업 디렉토리 설정
 WORKDIR /label-studio
@@ -22,6 +22,7 @@ RUN pip install --no-cache-dir /tmp/label_studio_sso-6.0.7-py3-none-any.whl
 # 커스텀 설정 파일 복사
 COPY config/label_studio.py /label-studio/label_studio/core/settings/label_studio.py
 COPY config/urls_simple.py /label-studio/label_studio/core/urls.py
+COPY config/security_middleware.py /label-studio/label_studio/core/settings/security_middleware.py
 
 # 커스텀 permissions 및 API 복사
 COPY custom-permissions /label-studio/label_studio/custom_permissions

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.20] - 2025-10-31
+
+### Fixed
+
+#### ModuleNotFoundError 수정
+- **문제**: v1.20.0-sso.19에서 `ModuleNotFoundError: No module named 'config'` 발생
+- **원인**:
+  - `config/security_middleware.py` 파일이 Dockerfile에서 컨테이너로 복사되지 않음
+  - `config/label_studio.py`에서 `config.security_middleware` 모듈을 import하려고 시도
+- **수정**:
+  - Dockerfile에 `COPY config/security_middleware.py /label-studio/label_studio/core/settings/security_middleware.py` 추가
+  - `config/label_studio.py`의 import 경로를 `config.security_middleware` → `core.settings.security_middleware`로 수정
+- **영향**: Label Studio 컨테이너가 정상적으로 시작되지 못하는 치명적 버그 해결
+- **파일**:
+  - `Dockerfile` (line 25)
+  - `config/label_studio.py` (line 216-217)
+
 ## [1.20.0-sso.19] - 2025-10-30
 
 ### Added

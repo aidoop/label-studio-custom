@@ -213,8 +213,8 @@ except IOError:
 MIDDLEWARE = [m for m in MIDDLEWARE if m != 'django.middleware.clickjacking.XFrameOptionsMiddleware']
 
 # 커스텀 보안 미들웨어 추가
-MIDDLEWARE.append('config.security_middleware.ContentSecurityPolicyMiddleware')
-MIDDLEWARE.append('config.security_middleware.XFrameOptionsMiddleware')
+MIDDLEWARE.append('core.settings.security_middleware.ContentSecurityPolicyMiddleware')
+MIDDLEWARE.append('core.settings.security_middleware.XFrameOptionsMiddleware')
 
 # ------------------------------------------------------------------------------
 # Content-Security-Policy (CSP) 설정 (권장)
