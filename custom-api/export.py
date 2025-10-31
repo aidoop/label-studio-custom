@@ -33,7 +33,7 @@ class CustomExportAPI(APIView):
     MLOps 시스템에서 모델 학습 및 성능 계산을 위한 Task Export API
 
     Features:
-    - 날짜 범위 필터링 (task.data.source_created_dt)
+    - 날짜 범위 필터링 (task.data.source_created_at)
     - 모델 버전 필터링 (prediction.model_version)
     - 승인자 필터링 (annotation.completed_by)
     - 선택적 페이징 지원
@@ -141,8 +141,8 @@ class CustomExportAPI(APIView):
 
         Args:
             project_id: 프로젝트 ID
-            search_from: 검색 시작일 (task.data.source_created_dt)
-            search_to: 검색 종료일 (task.data.source_created_dt)
+            search_from: 검색 시작일 (task.data.source_created_at)
+            search_to: 검색 종료일 (task.data.source_created_at)
             model_version: 모델 버전 (prediction.model_version)
             confirm_user_id: 승인자 ID (annotation.completed_by)
 
@@ -152,23 +152,20 @@ class CustomExportAPI(APIView):
         # 기본 필터: project_id
         queryset = Task.objects.filter(project_id=project_id)
 
-        # 날짜 범위 필터 (task.data->>'source_created_dt')
-        # PostgreSQL JSONField에서 날짜 문자열을 비교하기 위해
-        # timestamptz로 변환하여 타임존을 고려한 비교 수행
+        # 날짜 범위 필터 (task.data->>'source_created_at')
+        # 단순 문자열 비교 수행
         if search_from:
-            # Django의 DateTimeField는 timezone-aware datetime 반환
-            # UTC로 변환하여 ISO 8601 형식 문자열로 저장
-            # PostgreSQL의 timestamptz는 타임존을 자동으로 처리
-            search_from_str = search_from.isoformat()
+            # datetime을 문자열로 변환 (YYYY-MM-DD HH:MI:SS 형식)
+            search_from_str = search_from.strftime('%Y-%m-%d %H:%M:%S')
             queryset = queryset.extra(
-                where=["(data->>'source_created_dt')::timestamptz >= %s::timestamptz"],
+                where=["(data->>'source_created_at') >= %s"],
                 params=[search_from_str]
             )
 
         if search_to:
-            search_to_str = search_to.isoformat()
+            search_to_str = search_to.strftime('%Y-%m-%d %H:%M:%S')
             queryset = queryset.extra(
-                where=["(data->>'source_created_dt')::timestamptz <= %s::timestamptz"],
+                where=["(data->>'source_created_at') <= %s"],
                 params=[search_to_str]
             )
 

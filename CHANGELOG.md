@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.21] - 2025-10-31
+
+### Fixed
+
+#### Custom Export API 날짜 필터링 수정
+- **문제**: `source_created_at` 필드로 날짜 필터링이 동작하지 않음
+- **원인**:
+  - 코드는 `source_created_dt` 필드를 검색했으나 실제 데이터는 `source_created_at` 사용
+  - 타임존을 고려한 복잡한 비교 로직으로 인한 혼란
+- **수정**:
+  - 필드명을 `source_created_dt` → `source_created_at`으로 통일
+  - 타임존 고려 제거, 단순 문자열 비교로 변경
+  - `::timestamptz` 캐스팅 제거하고 `YYYY-MM-DD HH:MI:SS` 형식 문자열 직접 비교
+- **영향**: Custom Export API의 날짜 범위 필터링 정상 동작
+- **파일**:
+  - `custom-api/export.py` (line 36, 144-145, 155-170)
+  - `custom-api/export_serializers.py` (line 27, 33)
+
 ## [1.20.0-sso.20] - 2025-10-31
 
 ### Fixed
