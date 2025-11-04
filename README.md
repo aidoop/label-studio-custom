@@ -71,14 +71,23 @@
   - `AnnotationSerializer` - 표준 annotation 형식
   - `completed_by_info` enrichment 추가 (MLOps 커스텀)
 - **주요 기능**:
-  - 날짜 범위 필터링 (`task.data.source_created_dt`)
+  - **동적 날짜 필드 필터링** (`task.data` 내의 모든 날짜 필드 지원)
+    - `search_date_field` 파라미터로 날짜 필드명 지정
+    - 기본값: `source_created_at` (하위 호환성)
+    - 예: `mesure_at`, `original_created_at` 등
   - 모델 버전 필터링 (`prediction.model_version`)
   - 승인자 필터링 (`annotation.completed_by` - Super User만)
   - 선택적 페이징 지원 (기본: 전체 반환)
   - N+1 쿼리 최적화
+- **보안**:
+  - SQL Injection 방지 (정규식 검증 + 파라미터화된 쿼리)
+  - 필드명 화이트리스트 검증 (영문자, 숫자, 언더스코어만 허용)
 - **엔드포인트**: `POST /api/custom/export/`
 - **용도**: 모델 학습 데이터 수집, 모델 성능 계산
-- **버전**: v1.20.0-sso.10 (최초), v1.20.0-sso.11 (오리지널 Serializer 적용)
+- **버전**:
+  - v1.20.0-sso.10 (최초)
+  - v1.20.0-sso.11 (오리지널 Serializer 적용)
+  - v1.20.0-sso.22 (동적 날짜 필드 필터링 추가)
 - **문서**: [Custom Export API Guide](docs/CUSTOM_EXPORT_API_GUIDE.md)
 
 ## Quick Start

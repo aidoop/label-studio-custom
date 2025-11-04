@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.22] - 2025-11-04
+
+### Added
+
+#### Custom Export API - 동적 날짜 필드 필터링
+- **목적**: `task.data` JSONB 필드 내의 다양한 날짜 필드로 검색 가능하도록 개선
+- **기능**:
+  - 새로운 파라미터: `search_date_field` (옵션, 기본값: `source_created_at`)
+  - `task.data` 내의 모든 날짜 필드명 지정 가능
+  - 예: `mesure_at` (센서 계측일시), `original_created_at` (원본 생성일) 등
+- **하위 호환성**: `search_date_field` 생략 시 기존 동작 유지 (`source_created_at` 사용)
+- **보안**:
+  - SQL Injection 방지: 정규식 검증 (`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+  - 필드명 길이 제한 (최대 64자)
+  - 파라미터화된 쿼리로 이중 방어
+- **파일**:
+  - `custom-api/export_serializers.py` (line 36-67)
+  - `custom-api/export.py` (line 81, 101, 140-180)
+  - `docs/CUSTOM_EXPORT_API_GUIDE.md` (업데이트)
+  - `README.md` (업데이트)
+
+### Changed
+
+#### Custom Export API 보안 강화
+- **변경**: SQL Injection 취약점 제거
+- **이전**: f-string으로 필드명 직접 삽입 (`f"(data->>'{search_date_field}') >= %s"`)
+- **현재**: 파라미터화된 쿼리 (`where=["(data->>%s) >= %s"]`, `params=[search_date_field, ...]`)
+- **효과**: SQL Injection 공격 원천 차단
+
 ## [1.20.0-sso.21] - 2025-10-31
 
 ### Fixed

@@ -8,11 +8,14 @@ Custom Export API는 MLOps 시스템에서 모델 학습 및 성능 계산을 �
 
 ### 주요 기능
 
-- ✅ 날짜 범위 필터링 (`task.data.source_created_dt`)
+- ✅ **동적 날짜 필드 필터링** (`task.data` 내의 모든 날짜 필드 지원)
+  - `search_date_field` 파라미터로 필드명 지정
+  - 기본값: `source_created_at` (하위 호환성)
 - ✅ 모델 버전 필터링 (`prediction.model_version`)
 - ✅ 승인자 필터링 (`annotation.completed_by` - Super User)
 - ✅ 선택적 페이징 지원 (기본: 전체 반환)
 - ✅ N+1 쿼리 최적화 (Prefetch)
+- ✅ SQL Injection 방지 (정규식 검증 + 파라미터화)
 
 ## API Endpoint
 
@@ -40,13 +43,14 @@ Authorization: Bearer <jwt-token>
 
 ```json
 {
-  "project_id": 1,                        // 필수: 프로젝트 ID
-  "search_from": "2025-01-01 00:00:00",  // 옵션: 검색 시작일
-  "search_to": "2025-01-31 23:59:59",    // 옵션: 검색 종료일
-  "model_version": "bert-v1",            // 옵션: 추론 모델 버전
-  "confirm_user_id": 8,                   // 옵션: 승인자 User ID
-  "page": 1,                              // 옵션: 페이지 번호
-  "page_size": 100                        // 옵션: 페이지 크기
+  "project_id": 1,                          // 필수: 프로젝트 ID
+  "search_from": "2025-01-01 00:00:00",    // 옵션: 검색 시작일
+  "search_to": "2025-01-31 23:59:59",      // 옵션: 검색 종료일
+  "search_date_field": "source_created_at", // 옵션: 날짜 필드명 (기본값: source_created_at)
+  "model_version": "bert-v1",              // 옵션: 추론 모델 버전
+  "confirm_user_id": 8,                     // 옵션: 승인자 User ID
+  "page": 1,                                // 옵션: 페이지 번호
+  "page_size": 100                          // 옵션: 페이지 크기
 }
 ```
 
@@ -55,8 +59,9 @@ Authorization: Bearer <jwt-token>
 | 파라미터 | 타입 | 필수 | 설명 |
 |---------|------|------|------|
 | `project_id` | Integer | ✅ | Label Studio 프로젝트 ID |
-| `search_from` | DateTime | ❌ | 검색 시작일 (format: `yyyy-mm-dd hh:mi:ss` 또는 ISO 8601)<br>task.data.source_created_dt >= search_from |
-| `search_to` | DateTime | ❌ | 검색 종료일 (format: `yyyy-mm-dd hh:mi:ss` 또는 ISO 8601)<br>task.data.source_created_dt <= search_to |
+| `search_from` | DateTime | ❌ | 검색 시작일 (format: `yyyy-mm-dd hh:mi:ss` 또는 ISO 8601)<br>`task.data[search_date_field] >= search_from` |
+| `search_to` | DateTime | ❌ | 검색 종료일 (format: `yyyy-mm-dd hh:mi:ss` 또는 ISO 8601)<br>`task.data[search_date_field] <= search_to` |
+| `search_date_field` | String | ❌ | 검색할 날짜 필드명 (기본값: `source_created_at`)<br>`task.data` JSONB 내의 필드명<br>영문자, 숫자, 언더스코어만 허용 (최대 64자) |
 | `model_version` | String | ❌ | 추론 모델 버전<br>prediction.model_version과 일치하는 Task만 반환 |
 | `confirm_user_id` | Integer | ❌ | 승인자 User ID<br>annotation.completed_by와 일치하고 is_superuser=true인 annotation만 반환 |
 | `page` | Integer | ❌ | 페이지 번호 (1부터 시작)<br>page_size와 함께 제공되어야 함 |
@@ -195,9 +200,9 @@ curl -X POST http://localhost:8080/api/custom/export/ \
   }'
 ```
 
-### 예시 2: 날짜 범위 필터링
+### 예시 2: 날짜 범위 필터링 (기본 필드)
 
-특정 기간의 Task만 가져옵니다.
+특정 기간의 Task만 가져옵니다. (`search_date_field` 생략 시 `source_created_at` 사용)
 
 ```bash
 curl -X POST http://localhost:8080/api/custom/export/ \
@@ -207,6 +212,38 @@ curl -X POST http://localhost:8080/api/custom/export/ \
     "project_id": 1,
     "search_from": "2025-01-01 00:00:00",
     "search_to": "2025-01-31 23:59:59"
+  }'
+```
+
+### 예시 2-1: 동적 날짜 필드 필터링 (센서 계측일시)
+
+센서 계측일시(`mesure_at`) 기준으로 필터링합니다.
+
+```bash
+curl -X POST http://localhost:8080/api/custom/export/ \
+  -H "Authorization: Token YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": 23,
+    "search_from": "2025-01-01 00:00:00",
+    "search_to": "2025-12-31 23:59:59",
+    "search_date_field": "mesure_at"
+  }'
+```
+
+### 예시 2-2: 동적 날짜 필드 필터링 (원본 데이터 생성일)
+
+원본 데이터 생성일(`original_created_at`) 기준으로 필터링합니다.
+
+```bash
+curl -X POST http://localhost:8080/api/custom/export/ \
+  -H "Authorization: Token YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": 1,
+    "search_from": "2025-01-15 00:00:00",
+    "search_to": "2025-01-20 23:59:59",
+    "search_date_field": "original_created_at"
   }'
 ```
 
@@ -571,7 +608,7 @@ Custom Export API는 Label Studio 1.20.0의 표준 Serializer를 사용하여 �
    - 별도 API 호출 없이 사용자 정보 확인 가능
 
 2. **필터링 기능**
-   - 날짜 범위 필터링 (`task.data.source_created_dt`)
+   - **동적 날짜 필드 필터링** (`task.data` 내의 모든 날짜 필드 지원)
    - 모델 버전 필터링 (`prediction.model_version`)
    - 승인자 필터링 (Super User only)
 
@@ -586,13 +623,106 @@ Custom Export API는 Label Studio 1.20.0의 표준 Serializer를 사용하여 �
 3. **유지보수성**: 코드 중복 최소화, 간결한 구조
 4. **확장성**: Label Studio의 기능 개선 자동 반영
 
+## 보안
+
+### SQL Injection 방지
+
+Custom Export API는 다층 보안 메커니즘으로 SQL Injection을 방지합니다.
+
+#### 1. 입력 검증 (Serializer 레벨)
+
+`search_date_field` 파라미터는 정규식으로 검증됩니다:
+
+```python
+# 허용되는 패턴: 영문자, 숫자, 언더스코어만
+^[a-zA-Z_][a-zA-Z0-9_]*$
+```
+
+**검증 규칙**:
+- ✅ 첫 글자: 영문자 또는 언더스코어
+- ✅ 이후 글자: 영문자, 숫자, 언더스코어
+- ✅ 최대 길이: 64자
+- ❌ 특수문자 금지: `'`, `"`, `;`, `--`, 공백 등
+
+**정상 요청 예시**:
+```json
+{
+  "search_date_field": "source_created_at"    // ✅ 통과
+}
+{
+  "search_date_field": "mesure_at"            // ✅ 통과
+}
+{
+  "search_date_field": "_timestamp"           // ✅ 통과
+}
+```
+
+**악의적 요청 예시 (차단)**:
+```json
+{
+  "search_date_field": "'; DROP TABLE--"      // ❌ 400 Bad Request
+}
+{
+  "search_date_field": "source' OR '1'='1"    // ❌ 400 Bad Request
+}
+{
+  "search_date_field": "data->>'password"     // ❌ 400 Bad Request
+}
+```
+
+**에러 응답**:
+```json
+{
+  "error": "Invalid request parameters",
+  "details": {
+    "search_date_field": [
+      "필드명은 영문자, 숫자, 언더스코어(_)만 사용 가능합니다. 첫 글자는 영문자 또는 언더스코어여야 합니다."
+    ]
+  }
+}
+```
+
+#### 2. 파라미터화된 쿼리 (ORM 레벨)
+
+필드명도 파라미터로 전달하여 SQL Injection을 원천 차단합니다:
+
+```python
+# ❌ 이전 (취약)
+queryset = queryset.extra(
+    where=[f"(data->>'{search_date_field}') >= %s"],
+    params=[search_from_str]
+)
+
+# ✅ 현재 (안전)
+queryset = queryset.extra(
+    where=["(data->>%s) >= %s"],
+    params=[search_date_field, search_from_str]
+)
+```
+
+#### 3. 다층 방어 (Defense in Depth)
+
+```
+Request
+   ↓
+[1] Serializer 정규식 검증
+   ↓ (통과: source_created_at, mesure_at 등)
+   ↓ (차단: "'; DROP TABLE--", "OR 1=1" 등)
+   ↓
+[2] Django ORM 파라미터화
+   ↓ (자동 이스케이핑)
+   ↓
+PostgreSQL 쿼리 실행
+```
+
 ## 버전 정보
 
 - **최초 버전:** v1.20.0-sso.10
 - **오리지널 Serializer 적용:** v1.20.0-sso.11
+- **동적 날짜 필드 필터링 추가:** v1.20.0-sso.22
 - **Label Studio 기반 버전:** 1.20.0
 - **문서 작성일:** 2025-10-28
-- **최종 수정일:** 2025-10-28
+- **최종 수정일:** 2025-11-04
 
 ## 관련 문서
 

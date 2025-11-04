@@ -24,14 +24,47 @@ class CustomExportRequestSerializer(serializers.Serializer):
     search_from = serializers.DateTimeField(
         required=False,
         allow_null=True,
-        help_text="검색 시작일 (format: yyyy-mm-dd hh:mi:ss 또는 ISO 8601) - task.data.source_created_at 기준"
+        help_text="검색 시작일 (format: yyyy-mm-dd hh:mi:ss 또는 ISO 8601) - task.data의 날짜 필드 기준"
     )
 
     search_to = serializers.DateTimeField(
         required=False,
         allow_null=True,
-        help_text="검색 종료일 (format: yyyy-mm-dd hh:mi:ss 또는 ISO 8601) - task.data.source_created_at 기준"
+        help_text="검색 종료일 (format: yyyy-mm-dd hh:mi:ss 또는 ISO 8601) - task.data의 날짜 필드 기준"
     )
+
+    search_date_field = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        default='source_created_at',
+        help_text="검색할 날짜 필드명 (task.data 내의 필드명, 기본값: source_created_at)"
+    )
+
+    def validate_search_date_field(self, value):
+        """
+        search_date_field 필드명 검증 (SQL Injection 방지)
+
+        영문자, 숫자, 언더스코어만 허용
+        """
+        if not value:
+            return 'source_created_at'
+
+        # 안전한 필드명 패턴: 영문자, 숫자, 언더스코어만 허용
+        import re
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', value):
+            raise serializers.ValidationError(
+                "필드명은 영문자, 숫자, 언더스코어(_)만 사용 가능합니다. "
+                "첫 글자는 영문자 또는 언더스코어여야 합니다."
+            )
+
+        # 필드명 길이 제한 (최대 64자)
+        if len(value) > 64:
+            raise serializers.ValidationError(
+                "필드명은 최대 64자까지 입력 가능합니다."
+            )
+
+        return value
 
     # 선택 필드 - 모델 버전 필터
     model_version = serializers.CharField(

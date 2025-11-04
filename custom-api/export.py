@@ -8,6 +8,7 @@ MLOps 시스템의 모델 학습 및 성능 계산을 위한 필터링된 Task E
 from django.db.models import Q, Prefetch
 from django.db.models.functions import Cast
 from django.db.models import DateTimeField as ModelDateTimeField
+from django.db import connection
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -33,7 +34,7 @@ class CustomExportAPI(APIView):
     MLOps 시스템에서 모델 학습 및 성능 계산을 위한 Task Export API
 
     Features:
-    - 날짜 범위 필터링 (task.data.source_created_at)
+    - 날짜 범위 필터링 (task.data 내의 동적 날짜 필드)
     - 모델 버전 필터링 (prediction.model_version)
     - 승인자 필터링 (annotation.completed_by)
     - 선택적 페이징 지원
@@ -52,6 +53,7 @@ class CustomExportAPI(APIView):
             "project_id": 1,                        // 필수
             "search_from": "2025-01-01 00:00:00",  // 옵션
             "search_to": "2025-01-31 23:59:59",    // 옵션
+            "search_date_field": "source_created_at", // 옵션 (기본값: source_created_at)
             "model_version": "bert-v1",            // 옵션
             "confirm_user_id": 8,                   // 옵션
             "page": 1,                              // 옵션
@@ -78,6 +80,7 @@ class CustomExportAPI(APIView):
         project_id = validated_data['project_id']
         search_from = validated_data.get('search_from')
         search_to = validated_data.get('search_to')
+        search_date_field = validated_data.get('search_date_field', 'source_created_at')
         model_version = validated_data.get('model_version')
         confirm_user_id = validated_data.get('confirm_user_id')
         page = validated_data.get('page')
@@ -97,6 +100,7 @@ class CustomExportAPI(APIView):
             project_id=project_id,
             search_from=search_from,
             search_to=search_to,
+            search_date_field=search_date_field,
             model_version=model_version,
             confirm_user_id=confirm_user_id
         )
@@ -135,14 +139,15 @@ class CustomExportAPI(APIView):
 
         return Response(response_data, status=status.HTTP_200_OK)
 
-    def _build_queryset(self, project_id, search_from, search_to, model_version, confirm_user_id):
+    def _build_queryset(self, project_id, search_from, search_to, search_date_field, model_version, confirm_user_id):
         """
         필터 조건에 따라 QuerySet 빌드
 
         Args:
             project_id: 프로젝트 ID
-            search_from: 검색 시작일 (task.data.source_created_at)
-            search_to: 검색 종료일 (task.data.source_created_at)
+            search_from: 검색 시작일
+            search_to: 검색 종료일
+            search_date_field: task.data 내의 날짜 필드명 (기본값: source_created_at)
             model_version: 모델 버전 (prediction.model_version)
             confirm_user_id: 승인자 ID (annotation.completed_by)
 
@@ -152,21 +157,26 @@ class CustomExportAPI(APIView):
         # 기본 필터: project_id
         queryset = Task.objects.filter(project_id=project_id)
 
-        # 날짜 범위 필터 (task.data->>'source_created_at')
-        # 단순 문자열 비교 수행
+        # 날짜 범위 필터 (task.data->>'{search_date_field}')
+        # 동적으로 날짜 필드명을 사용하여 단순 문자열 비교 수행
+        # 보안: search_date_field는 Serializer에서 정규식 검증됨
         if search_from:
             # datetime을 문자열로 변환 (YYYY-MM-DD HH:MI:SS 형식)
             search_from_str = search_from.strftime('%Y-%m-%d %H:%M:%S')
+
+            # SQL Injection 방지: 필드명을 identifier로 쿼팅
+            # PostgreSQL에서 identifier는 이중 따옴표로 감싸되,
+            # Serializer에서 이미 검증되었으므로 안전하게 사용
             queryset = queryset.extra(
-                where=["(data->>'source_created_at') >= %s"],
-                params=[search_from_str]
+                where=["(data->>%s) >= %s"],
+                params=[search_date_field, search_from_str]
             )
 
         if search_to:
             search_to_str = search_to.strftime('%Y-%m-%d %H:%M:%S')
             queryset = queryset.extra(
-                where=["(data->>'source_created_at') <= %s"],
-                params=[search_to_str]
+                where=["(data->>%s) <= %s"],
+                params=[search_date_field, search_to_str]
             )
 
         # 모델 버전 필터 (prediction.model_version)
