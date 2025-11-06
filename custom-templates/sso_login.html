@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Denied - Label Studio SSO</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 48px 40px;
+            text-align: center;
+        }
+
+        .icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #2d3748;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .message {
+            font-size: 16px;
+            color: #718096;
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+
+        .info-box {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 16px 20px;
+            text-align: left;
+            margin-bottom: 32px;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            display: block;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .info-box p {
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+
+        .footer {
+            margin-top: 32px;
+            font-size: 13px;
+            color: #a0aec0;
+        }
+
+        .error-code {
+            display: inline-block;
+            background: #fed7d7;
+            color: #c53030;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        /* iframe 환경 감지 */
+        .iframe-message {
+            display: none;
+            background: #fff5f5;
+            border: 1px solid #fc8181;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 24px;
+            text-align: left;
+        }
+
+        .iframe-message strong {
+            color: #c53030;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .iframe-message p {
+            color: #742a2a;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+    <script>
+        // iframe 환경 감지
+        if (window.self !== window.top) {
+            window.addEventListener('DOMContentLoaded', function() {
+                // iframe 환경임을 표시
+                document.querySelector('.iframe-message').style.display = 'block';
+
+                // iframe에서는 간단한 메시지만 표시
+                document.querySelector('.container').style.padding = '24px';
+                document.querySelector('h1').textContent = '인증 필요';
+                document.querySelector('.message').textContent = 'SSO 인증이 필요합니다. 창을 닫고 다시 시도해주세요.';
+
+                // iframe에서는 상세 설명 숨기기
+                var infoBoxes = document.querySelectorAll('.info-box');
+                infoBoxes.forEach(function(box) {
+                    box.style.display = 'none';
+                });
+
+                // 부모 창에 오류 메시지 전달 (postMessage)
+                try {
+                    window.parent.postMessage({
+                        type: 'LABEL_STUDIO_AUTH_ERROR',
+                        error: 'UNAUTHORIZED_ACCESS',
+                        message: 'SSO authentication required'
+                    }, '*');
+                } catch (e) {
+                    console.error('Failed to send message to parent:', e);
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            🔒
+        </div>
+
+        <h1>접근이 제한되었습니다</h1>
+
+        <p class="message">
+            Label Studio는 SSO(Single Sign-On) 인증을 통해서만 접근할 수 있습니다.
+        </p>
+
+        <div class="info-box">
+            <strong>📌 올바른 접근 방법</strong>
+            <p>
+                SSO 시스템을 통해 로그인한 후,<br>
+                인증된 상태에서 Label Studio에 접근해주세요.
+            </p>
+        </div>
+
+        <div class="info-box">
+            <strong>⚠️ 직접 로그인 불가</strong>
+            <p>
+                보안상의 이유로 Label Studio에 직접 로그인할 수 없습니다.<br>
+                반드시 SSO 시스템을 통해 접근해야 합니다.
+            </p>
+        </div>
+
+        <div class="iframe-message">
+            <strong>⚠️ iframe 임베딩 오류</strong>
+            <p>
+                SSO 인증이 실패했습니다. 창을 닫고 SSO 시스템에서 다시 시도해주세요.<br>
+                문제가 계속되면 관리자에게 문의하세요.
+            </p>
+        </div>
+
+        <div class="footer">
+            <div class="error-code">ERROR: UNAUTHORIZED_ACCESS</div>
+            <p style="margin-top: 12px;">Label Studio Custom - SSO Edition</p>
+        </div>
+    </div>
+</body>
+</html>

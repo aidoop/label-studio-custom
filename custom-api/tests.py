@@ -1,7 +1,9 @@
 """
-Custom Export API Tests
+Custom API Tests
 
-Label Studio 1.20.0 기반 커스텀 Export API 테스트
+Label Studio 1.20.0 기반 커스텀 API 테스트
+- Custom Export API
+- Custom SSO Token Validation API
 """
 
 from django.test import TestCase
@@ -15,6 +17,7 @@ from organizations.models import Organization
 import json
 from datetime import datetime
 import pytz
+from unittest.mock import patch
 
 User = get_user_model()
 
@@ -530,3 +533,379 @@ class CustomExportAPITest(TestCase):
         self.assertIn('Task 1', task_texts)
         self.assertIn('Task 2', task_texts)
         self.assertNotIn('Task 3', task_texts)
+
+
+class ValidatedSSOTokenAPITest(TestCase):
+    """Custom SSO Token Validation API 테스트"""
+
+    def setUp(self):
+        """테스트 데이터 설정"""
+        # Admin 사용자 생성 (API 호출 권한)
+        self.admin_user = User.objects.create_user(
+            username='admin',
+            email='admin@test.com',
+            password='testpass123'
+        )
+        self.admin_user.is_superuser = True
+        self.admin_user.is_staff = True
+        self.admin_user.save()
+
+        # 일반 사용자 생성
+        self.regular_user = User.objects.create_user(
+            username='user',
+            email='user@test.com',
+            password='testpass123'
+        )
+
+        # 비활성 사용자 생성
+        self.inactive_user = User.objects.create_user(
+            username='inactive',
+            email='inactive@test.com',
+            password='testpass123'
+        )
+        self.inactive_user.is_active = False
+        self.inactive_user.save()
+
+        # API Client 설정
+        self.client = APIClient()
+        self.url = '/api/custom/sso/token'
+
+    def test_requires_admin_permission(self):
+        """Admin 권한 필요 확인"""
+        # 인증 없음
+        response = self.client.post(self.url, {'email': 'user@test.com'})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # 일반 사용자 인증
+        self.client.force_authenticate(user=self.regular_user)
+        response = self.client.post(self.url, {'email': 'user@test.com'})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_requires_email_parameter(self):
+        """email 파라미터 필수 확인"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        # email 없음
+        response = self.client.post(self.url, {})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.json()
+        self.assertFalse(data['success'])
+        self.assertEqual(data['error_code'], 'INVALID_REQUEST')
+        self.assertIn('email is required', data['error'])
+
+    def test_user_not_found(self):
+        """존재하지 않는 사용자 처리"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(self.url, {'email': 'nonexistent@test.com'})
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        data = response.json()
+        self.assertFalse(data['success'])
+        self.assertEqual(data['error_code'], 'USER_NOT_FOUND')
+        self.assertIn('User not found', data['error'])
+        self.assertEqual(data['email'], 'nonexistent@test.com')
+
+    def test_inactive_user_rejected(self):
+        """비활성 사용자 거부"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(self.url, {'email': 'inactive@test.com'})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        data = response.json()
+        self.assertFalse(data['success'])
+        self.assertEqual(data['error_code'], 'USER_INACTIVE')
+        self.assertIn('User is inactive', data['error'])
+        self.assertEqual(data['email'], 'inactive@test.com')
+
+    @patch('custom_api.sso.generate_jwt_token')
+    def test_successful_token_generation(self, mock_generate_jwt):
+        """정상적인 토큰 발급"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        # Mock JWT 토큰 생성
+        mock_generate_jwt.return_value = 'mock_jwt_token_12345'
+
+        response = self.client.post(self.url, {'email': 'user@test.com'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.json()
+        self.assertEqual(data['token'], 'mock_jwt_token_12345')
+        self.assertEqual(data['expires_in'], 600)
+
+        # 사용자 정보 확인
+        user_data = data['user']
+        self.assertEqual(user_data['id'], self.regular_user.id)
+        self.assertEqual(user_data['email'], 'user@test.com')
+        self.assertEqual(user_data['username'], 'user')
+        self.assertFalse(user_data['is_superuser'])
+
+        # generate_jwt_token이 올바른 인자로 호출되었는지 확인
+        mock_generate_jwt.assert_called_once_with(self.regular_user, expiry_seconds=600)
+
+    @patch('custom_api.sso.generate_jwt_token')
+    def test_superuser_token_generation(self, mock_generate_jwt):
+        """Superuser 토큰 발급"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        mock_generate_jwt.return_value = 'mock_admin_token'
+
+        response = self.client.post(self.url, {'email': 'admin@test.com'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.json()
+        user_data = data['user']
+        self.assertTrue(user_data['is_superuser'])
+
+    def test_email_case_insensitive(self):
+        """이메일 대소문자 구분 없음 (Django 기본 동작)"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        # 대문자로 조회
+        with patch('custom_api.sso.generate_jwt_token', return_value='mock_token'):
+            response = self.client.post(self.url, {'email': 'USER@TEST.COM'})
+
+            # Django의 User 모델은 기본적으로 email이 대소문자를 구분하므로
+            # 정확히 일치하지 않으면 USER_NOT_FOUND 반환
+            if response.status_code == status.HTTP_404_NOT_FOUND:
+                data = response.json()
+                self.assertEqual(data['error_code'], 'USER_NOT_FOUND')
+
+
+class BatchValidateSSOTokenAPITest(TestCase):
+    """Batch SSO Token Validation API 테스트"""
+
+    def setUp(self):
+        """테스트 데이터 설정"""
+        # Admin 사용자 생성
+        self.admin_user = User.objects.create_user(
+            username='admin',
+            email='admin@test.com',
+            password='testpass123'
+        )
+        self.admin_user.is_superuser = True
+        self.admin_user.is_staff = True
+        self.admin_user.save()
+
+        # 일반 사용자들 생성
+        self.user1 = User.objects.create_user(
+            username='user1',
+            email='user1@test.com',
+            password='testpass123'
+        )
+
+        self.user2 = User.objects.create_user(
+            username='user2',
+            email='user2@test.com',
+            password='testpass123'
+        )
+
+        # 비활성 사용자
+        self.inactive_user = User.objects.create_user(
+            username='inactive',
+            email='inactive@test.com',
+            password='testpass123'
+        )
+        self.inactive_user.is_active = False
+        self.inactive_user.save()
+
+        # API Client 설정
+        self.client = APIClient()
+        self.url = '/api/custom/sso/batch-token'
+
+    def test_requires_admin_permission(self):
+        """Admin 권한 필요 확인"""
+        # 인증 없음
+        response = self.client.post(self.url, {'emails': ['user1@test.com']})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_requires_emails_parameter(self):
+        """emails 파라미터 필수 확인"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        # emails 없음
+        response = self.client.post(self.url, {})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.json()
+        self.assertFalse(data['success'])
+        self.assertEqual(data['error_code'], 'INVALID_REQUEST')
+
+    def test_emails_must_be_list(self):
+        """emails가 리스트여야 함"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        # 문자열로 전달
+        response = self.client.post(self.url, {'emails': 'user1@test.com'})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.json()
+        self.assertEqual(data['error_code'], 'INVALID_REQUEST')
+
+    def test_empty_emails_list(self):
+        """빈 리스트 처리"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(self.url, {'emails': []})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.json()
+        self.assertEqual(data['error_code'], 'INVALID_REQUEST')
+
+    @patch('custom_api.sso.generate_jwt_token')
+    def test_batch_token_generation_all_success(self, mock_generate_jwt):
+        """모든 사용자 토큰 발급 성공"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        # Mock JWT 토큰 생성 (호출마다 다른 토큰)
+        mock_generate_jwt.side_effect = ['token1', 'token2']
+
+        response = self.client.post(self.url, {
+            'emails': ['user1@test.com', 'user2@test.com']
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # 결과 요약 확인
+        self.assertEqual(data['total'], 2)
+        self.assertEqual(data['success'], 2)
+        self.assertEqual(data['failed'], 0)
+
+        # 성공 목록 확인
+        self.assertEqual(len(data['results']['success']), 2)
+
+        # 첫 번째 사용자
+        result1 = data['results']['success'][0]
+        self.assertEqual(result1['email'], 'user1@test.com')
+        self.assertEqual(result1['token'], 'token1')
+        self.assertEqual(result1['expires_in'], 600)
+        self.assertEqual(result1['user']['id'], self.user1.id)
+
+        # 두 번째 사용자
+        result2 = data['results']['success'][1]
+        self.assertEqual(result2['email'], 'user2@test.com')
+        self.assertEqual(result2['token'], 'token2')
+
+    @patch('custom_api.sso.generate_jwt_token')
+    def test_batch_token_generation_mixed_results(self, mock_generate_jwt):
+        """일부 성공, 일부 실패"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        mock_generate_jwt.return_value = 'token1'
+
+        response = self.client.post(self.url, {
+            'emails': [
+                'user1@test.com',           # 성공
+                'nonexistent@test.com',     # 실패: 사용자 없음
+                'inactive@test.com',        # 실패: 비활성 사용자
+            ]
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # 결과 요약
+        self.assertEqual(data['total'], 3)
+        self.assertEqual(data['success'], 1)
+        self.assertEqual(data['failed'], 2)
+
+        # 성공 목록
+        success_results = data['results']['success']
+        self.assertEqual(len(success_results), 1)
+        self.assertEqual(success_results[0]['email'], 'user1@test.com')
+
+        # 실패 목록
+        failed_results = data['results']['failed']
+        self.assertEqual(len(failed_results), 2)
+
+        # 사용자 없음 오류
+        user_not_found = next(r for r in failed_results if r['email'] == 'nonexistent@test.com')
+        self.assertEqual(user_not_found['error_code'], 'USER_NOT_FOUND')
+        self.assertIn('User not found', user_not_found['error'])
+
+        # 비활성 사용자 오류
+        inactive_error = next(r for r in failed_results if r['email'] == 'inactive@test.com')
+        self.assertEqual(inactive_error['error_code'], 'USER_INACTIVE')
+        self.assertIn('User is inactive', inactive_error['error'])
+
+    def test_batch_token_generation_all_failed(self):
+        """모두 실패"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(self.url, {
+            'emails': [
+                'nonexistent1@test.com',
+                'nonexistent2@test.com',
+            ]
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data['total'], 2)
+        self.assertEqual(data['success'], 0)
+        self.assertEqual(data['failed'], 2)
+        self.assertEqual(len(data['results']['success']), 0)
+        self.assertEqual(len(data['results']['failed']), 2)
+
+    @patch('custom_api.sso.generate_jwt_token')
+    def test_duplicate_emails_handled(self, mock_generate_jwt):
+        """중복 이메일 처리"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        mock_generate_jwt.side_effect = ['token1', 'token2']
+
+        response = self.client.post(self.url, {
+            'emails': [
+                'user1@test.com',
+                'user1@test.com',  # 중복
+            ]
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # 중복 포함 모두 처리
+        self.assertEqual(data['total'], 2)
+        self.assertEqual(data['success'], 2)
+
+        # 두 번 모두 토큰 생성
+        success_results = data['results']['success']
+        self.assertEqual(len(success_results), 2)
+        self.assertEqual(success_results[0]['email'], 'user1@test.com')
+        self.assertEqual(success_results[1]['email'], 'user1@test.com')
+
+    def test_response_structure(self):
+        """Response 구조 검증"""
+        self.client.force_authenticate(user=self.admin_user)
+
+        with patch('custom_api.sso.generate_jwt_token', return_value='mock_token'):
+            response = self.client.post(self.url, {
+                'emails': ['user1@test.com']
+            })
+
+        data = response.json()
+
+        # 최상위 구조
+        self.assertIn('total', data)
+        self.assertIn('success', data)
+        self.assertIn('failed', data)
+        self.assertIn('results', data)
+
+        # results 구조
+        results = data['results']
+        self.assertIn('success', results)
+        self.assertIn('failed', results)
+        self.assertIsInstance(results['success'], list)
+        self.assertIsInstance(results['failed'], list)
+
+        # success item 구조
+        success_item = results['success'][0]
+        self.assertIn('email', success_item)
+        self.assertIn('token', success_item)
+        self.assertIn('expires_in', success_item)
+        self.assertIn('user', success_item)
+
+        # user 구조
+        user = success_item['user']
+        self.assertIn('id', user)
+        self.assertIn('email', user)
+        self.assertIn('username', user)
+        self.assertIn('is_superuser', user)

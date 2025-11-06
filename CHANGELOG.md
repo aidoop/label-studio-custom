@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.23] - 2025-11-07
+
+### Added
+
+#### Custom SSO Token Validation API
+- **목적**: 존재하지 않는 사용자에 대한 JWT 토큰 발급 방지 및 사전 검증
+- **문제 해결**:
+  - 기본 SSO API는 `SSO_AUTO_CREATE_USERS=true` 시 존재하지 않는 사용자도 자동 생성
+  - 폐쇄형 시스템에서는 사전 등록된 사용자만 접근 허용 필요
+- **주요 기능**:
+  - **사전 사용자 검증**: 토큰 발급 전 사용자 존재 여부 확인
+  - **명확한 에러 코드**: `USER_NOT_FOUND` (404), `USER_INACTIVE` (403), `INVALID_REQUEST` (400)
+  - **배치 처리**: 여러 사용자에 대한 토큰 일괄 발급
+  - **Admin 전용**: `IsAdminUser` 권한으로 보안 강화
+- **엔드포인트**:
+  - `POST /api/custom/sso/token` - 단일 사용자 토큰 발급 (사용자 검증 포함)
+  - `POST /api/custom/sso/batch-token` - 여러 사용자 일괄 토큰 발급
+- **파일**:
+  - `custom-api/sso.py` (새로 추가)
+  - `custom-api/urls.py` (엔드포인트 등록)
+  - `custom-api/tests.py` (24개 테스트 케이스 추가)
+  - `docs/CUSTOM_SSO_TOKEN_API.md` (완전한 API 가이드)
+  - `Makefile` (test-sso 명령어 추가)
+
+#### SSO 전용 로그인 페이지
+- **목적**: iframe 통합 시 Label Studio 직접 로그인 차단, SSO 전용 접근 유도
+- **문제 해결**: iframe에서 잘못된 JWT 토큰 사용 시 일반 로그인 폼 대신 SSO 안내 페이지 표시
+- **주요 기능**:
+  - **iframe 환경** (`?hideHeader=true`): SSO 전용 안내 페이지 표시
+    - postMessage로 부모 창에 인증 오류 알림
+    - 간단한 메시지와 iframe 특화 UI
+  - **일반 브라우저**: 원래 Label Studio 로그인 폼 (이메일/비밀번호)
+  - 자동 환경 감지, 추가 설정 불필요
+- **파일**:
+  - `custom-templates/sso_login.html` (새로 추가)
+  - `custom-api/sso_views.py` (새로 추가)
+  - `config/urls_simple.py` (`/user/login/` URL 오버라이드)
+
+### Changed
+
+#### 코드 품질 개선
+- **하드코딩 제거**: lambda __import__ 방식 → 정상 import 방식으로 변경
+- **범용성 향상**: 특정 회사명 제거, 범용적인 설명으로 변경
+- **단순화**: 불필요한 환경변수 및 복잡한 로직 제거
+
 ## [1.20.0-sso.22] - 2025-11-04
 
 ### Added

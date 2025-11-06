@@ -91,6 +91,8 @@ services:
       # ----------------------------------------------------------------------
       SESSION_COOKIE_DOMAIN: .localhost
       CSRF_COOKIE_DOMAIN: .localhost
+      # SESSION_COOKIE_SECURE: false  # HTTP 로컬 환경 (기본값)
+      # CSRF_COOKIE_SECURE: false     # HTTP 로컬 환경 (기본값)
 
       # ----------------------------------------------------------------------
       # Label Studio 설정

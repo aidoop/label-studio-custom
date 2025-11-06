@@ -11,6 +11,7 @@ from custom_api.projects import ProjectAPI
 from custom_api.admin_users import CreateSuperuserAPI, PromoteToSuperuserAPI, DemoteFromSuperuserAPI
 from custom_api.export import CustomExportAPI
 from custom_api.users import user_detail, user_by_email
+from custom_api.sso import ValidatedSSOTokenAPI, BatchValidateSSOTokenAPI
 
 app_name = 'custom_api'
 
@@ -31,4 +32,8 @@ urlpatterns = [
     # User Management API (이메일 수정 지원)
     path('users/<int:pk>/', user_detail, name='user-detail'),
     path('users/by-email/', user_by_email, name='user-by-email'),
+
+    # Custom SSO Token API (사용자 존재 여부 검증)
+    path('custom/sso/token', ValidatedSSOTokenAPI.as_view(), name='validated-sso-token'),
+    path('custom/sso/batch-token', BatchValidateSSOTokenAPI.as_view(), name='batch-sso-token'),
 ]

@@ -1,5 +1,184 @@
 # Label Studio Custom Image - 배포 가이드
 
+## 목차
+- [로컬 빌드 및 테스트](#로컬-빌드-및-테스트)
+- [GitHub Container Registry 배포](#github-container-registry-배포)
+- [HTTPS 프로덕션 배포](#https-프로덕션-배포) ⭐ **중요**
+- [배포 방법](#배포-방법)
+
+---
+
+## HTTPS 프로덕션 배포
+
+### 필수 환경 변수 설정
+
+HTTPS 환경(개발서버, 프로덕션)에서는 다음 설정이 **반드시** 필요합니다:
+
+```yaml
+version: "3.8"
+
+services:
+  labelstudio:
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.22
+
+    environment:
+      # ================================================================
+      # ⚠️ HTTPS 필수 설정
+      # ================================================================
+
+      # 1. HTTPS 쿠키 보안
+      SESSION_COOKIE_SECURE: "true"        # ← 반드시 true!
+      CSRF_COOKIE_SECURE: "true"           # ← 반드시 true!
+
+      # 2. 쿠키 도메인 (서브도메인 공유)
+      SESSION_COOKIE_DOMAIN: .nubison.io   # 점(.) 필수
+      CSRF_COOKIE_DOMAIN: .nubison.io      # 점(.) 필수
+
+      # 3. Label Studio URL (HTTPS)
+      LABEL_STUDIO_HOST: https://label-dev.nubison.io
+
+      # ================================================================
+      # 데이터베이스 설정
+      # ================================================================
+      DJANGO_DB: default
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: labelstudio
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secure_password_here
+
+      # ================================================================
+      # SSO 설정
+      # ================================================================
+      JWT_SSO_COOKIE_NAME: ls_auth_token
+      SSO_AUTO_CREATE_USERS: "true"
+
+      # ================================================================
+      # iframe 보안 헤더 (선택)
+      # ================================================================
+      CSP_FRAME_ANCESTORS: "'self' https://console-dev.nubison.io"
+      X_FRAME_OPTIONS: "SAMEORIGIN"
+```
+
+### 배포 체크리스트
+
+#### ✅ **필수 설정**
+```
+[ ] SESSION_COOKIE_SECURE=true 설정
+[ ] CSRF_COOKIE_SECURE=true 설정
+[ ] SESSION_COOKIE_DOMAIN=.yourdomain.com (점 포함)
+[ ] CSRF_COOKIE_DOMAIN=.yourdomain.com (점 포함)
+[ ] LABEL_STUDIO_HOST=https://... (HTTPS URL)
+[ ] POSTGRES_PASSWORD 강력한 비밀번호 설정
+```
+
+#### ✅ **배포 후 확인**
+```
+[ ] 브라우저 개발자 도구 → Application → Cookies 확인
+    - ls_sessionid 쿠키의 Secure 플래그 확인 (✓ 있어야 함)
+    - ls_csrftoken 쿠키의 Secure 플래그 확인 (✓ 있어야 함)
+    - Domain이 .yourdomain.com으로 설정되었는지 확인
+    - ls_csrftoken의 HttpOnly는 없어야 함 (JavaScript 접근 필요)
+[ ] Label Studio 로그인 테스트
+[ ] iframe 임베딩 테스트 (console → label studio)
+[ ] 사용자 전환 테스트
+```
+
+### HTTP vs HTTPS 설정 비교
+
+| 설정 | HTTP (로컬) | HTTPS (프로덕션) |
+|------|-------------|------------------|
+| `SESSION_COOKIE_SECURE` | `false` (기본값) | `true` ⚠️ **필수** |
+| `CSRF_COOKIE_SECURE` | `false` (기본값) | `true` ⚠️ **필수** |
+| `SESSION_COOKIE_DOMAIN` | `.localhost` | `.yourdomain.com` |
+| `CSRF_COOKIE_DOMAIN` | `.localhost` | `.yourdomain.com` |
+| `LABEL_STUDIO_HOST` | `http://...` | `https://...` |
+| 브라우저 Secure 플래그 | 없음 | ✓ 있음 |
+
+### 일반적인 문제
+
+#### 문제 1: 로그인 후에도 로그인 페이지가 계속 표시됨
+**원인**: `SESSION_COOKIE_SECURE=true`가 설정되지 않음
+
+**해결**:
+```yaml
+environment:
+  SESSION_COOKIE_SECURE: "true"  # 추가
+  CSRF_COOKIE_SECURE: "true"     # 추가
+```
+
+#### 문제 2: iframe에서 쿠키가 전달되지 않음
+**원인**: 쿠키 도메인이 서브도메인 공유 형식이 아님
+
+**해결**:
+```yaml
+environment:
+  SESSION_COOKIE_DOMAIN: .nubison.io  # 점(.) 추가
+  CSRF_COOKIE_DOMAIN: .nubison.io     # 점(.) 추가
+```
+
+#### 문제 3: SSO 인증 후 세션이 생성되지 않음
+**원인**: JWT 쿠키가 iframe에 전달되지 않음 (Secure 플래그 문제)
+
+**진단**:
+```bash
+# Label Studio 로그 확인
+docker logs label-studio-container -f | grep -i "jwt\|session"
+
+# 정상:
+[SSO Middleware] JWT token found in cookie 'ls_auth_token'
+[SSO Middleware] User auto-logged in via JWT: user@example.com
+
+# 문제:
+[SSO Middleware] No JWT token found in cookies
+```
+
+**해결**:
+```yaml
+environment:
+  SESSION_COOKIE_SECURE: "true"  # Label Studio에 설정
+  CSRF_COOKIE_SECURE: "true"     # Label Studio에 설정
+```
+
+그리고 SSO Backend(누비슨 시스템)에서:
+```javascript
+// JWT 쿠키 설정 시
+res.cookie("ls_auth_token", token, {
+  domain: ".nubison.io",
+  secure: true,        // ← HTTPS에서 필수!
+  httpOnly: false,
+  sameSite: "lax",
+  maxAge: 600 * 1000
+});
+```
+
+#### 문제 4: CSRF 토큰 관련 주의사항
+
+**Q: ls_csrftoken 쿠키의 HttpOnly가 설정 안 되어 있는데 괜찮나요?**
+
+**A: 괜찮습니다. 오히려 httpOnly=False가 정상입니다!**
+
+CSRF 토큰은 JavaScript에서 읽어서 POST/PUT/DELETE 요청 시 `X-CSRFToken` 헤더에 포함해야 합니다. httpOnly=True로 설정하면 JavaScript가 읽을 수 없어 CSRF 보호가 작동하지 않습니다.
+
+**쿠키별 httpOnly 설정:**
+
+| 쿠키 | httpOnly | 이유 |
+|------|----------|------|
+| `ls_sessionid` | `true` ✅ | XSS 공격 방지, JavaScript 접근 불필요 |
+| `ls_csrftoken` | `false` ✅ | JavaScript가 읽어서 헤더에 포함해야 함 |
+
+**하지만 HTTPS 환경에서는 Secure 플래그는 필요합니다:**
+
+```yaml
+environment:
+  CSRF_COOKIE_SECURE: "true"  # HTTPS에서 필수!
+```
+
+**배포 후 확인:**
+- `ls_csrftoken` 쿠키의 Secure 플래그: ✓ 있어야 함
+- `ls_csrftoken` 쿠키의 HttpOnly 플래그: 없어야 함 (JavaScript 접근 필요)
+
+---
+
 ## 로컬 빌드 및 테스트
 
 ### 1. 이미지 빌드

@@ -88,7 +88,33 @@
   - v1.20.0-sso.10 (최초)
   - v1.20.0-sso.11 (오리지널 Serializer 적용)
   - v1.20.0-sso.22 (동적 날짜 필드 필터링 추가)
+  - v1.20.0-sso.23 (Custom SSO Token API, SSO 로그인 페이지 추가)
 - **문서**: [Custom Export API Guide](docs/CUSTOM_EXPORT_API_GUIDE.md)
+
+### 8. Custom SSO Token Validation API
+
+- **목적**: 존재하지 않는 사용자에 대한 토큰 발급 방지 및 사전 검증
+- **문제 해결**:
+  - 기본 SSO API는 `SSO_AUTO_CREATE_USERS=true` 시 존재하지 않는 사용자도 자동 생성
+  - 폐쇄형 시스템에서는 사전 등록된 사용자만 접근 허용 필요
+- **주요 기능**:
+  - **사전 사용자 검증**: 토큰 발급 전 사용자 존재 여부 확인
+  - **명확한 에러 코드**: `USER_NOT_FOUND`, `USER_INACTIVE` 등 상세 오류 반환
+  - **배치 처리**: 여러 사용자에 대한 토큰 일괄 발급
+  - **Admin 전용**: `IsAdminUser` 권한으로 보안 강화
+- **엔드포인트**:
+  - `POST /api/custom/sso/token` - 단일 사용자 토큰 발급
+  - `POST /api/custom/sso/batch-token` - 여러 사용자 일괄 토큰 발급
+- **문서**: [Custom SSO Token API Guide](docs/CUSTOM_SSO_TOKEN_API.md)
+
+### 9. SSO 전용 로그인 페이지
+
+- **목적**: iframe 통합 시 Label Studio 직접 로그인 차단, SSO 전용 접근 유도
+- **문제 해결**: iframe에서 잘못된 JWT 토큰 사용 시 일반 로그인 폼 대신 SSO 안내 페이지 표시
+- **주요 기능**:
+  - iframe 환경 (`?hideHeader=true`): SSO 전용 안내 페이지 + postMessage로 부모 창 알림
+  - 일반 브라우저: 원래 Label Studio 로그인 폼
+  - 추가 설정 불필요
 
 ## Quick Start
 
@@ -106,7 +132,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.18
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.23
 
     depends_on:
       - postgres
@@ -131,6 +157,10 @@ services:
       SESSION_COOKIE_DOMAIN: .yourdomain.com
       CSRF_COOKIE_DOMAIN: .yourdomain.com
 
+      # ⚠️ HTTPS 환경에서는 아래 설정 필수!
+      # SESSION_COOKIE_SECURE: true
+      # CSRF_COOKIE_SECURE: true
+
       # Label Studio
       LABEL_STUDIO_HOST: http://localhost:8080
 
@@ -143,6 +173,8 @@ services:
 volumes:
   labelstudio_data:
 ```
+
+**⚠️ 중요**: 위 예시는 HTTP 로컬 개발 환경용입니다. HTTPS 환경(프로덕션, 개발서버)에서는 반드시 `SESSION_COOKIE_SECURE=true` 및 `CSRF_COOKIE_SECURE=true`를 설정해야 합니다. 자세한 내용은 [DEPLOYMENT.md](DEPLOYMENT.md#https-프로덕션-배포)를 참조하세요.
 
 ### 직접 빌드
 
@@ -188,10 +220,33 @@ docker run -p 8080:8080 \
 
 ### 쿠키 설정 (서브도메인 공유)
 
-| 변수                    | 설명             | 예시                 |
-| ----------------------- | ---------------- | -------------------- |
-| `SESSION_COOKIE_DOMAIN` | 세션 쿠키 도메인 | `.nubison.localhost` |
-| `CSRF_COOKIE_DOMAIN`    | CSRF 쿠키 도메인 | `.nubison.localhost` |
+| 변수                    | 설명             | 예시                 | 기본값 |
+| ----------------------- | ---------------- | -------------------- | ------ |
+| `SESSION_COOKIE_DOMAIN` | 세션 쿠키 도메인 | `.nubison.localhost` | None   |
+| `CSRF_COOKIE_DOMAIN`    | CSRF 쿠키 도메인 | `.nubison.localhost` | None   |
+| `SESSION_COOKIE_SECURE` | HTTPS 환경에서 세션 쿠키 Secure 플래그 (⚠️ HTTPS 필수) | `true` | `false` |
+| `CSRF_COOKIE_SECURE`    | HTTPS 환경에서 CSRF 쿠키 Secure 플래그 (⚠️ HTTPS 필수) | `true` | `false` |
+
+**⚠️ 중요**: HTTPS 환경(프로덕션, 개발서버)에서는 반드시 `SESSION_COOKIE_SECURE=true` 및 `CSRF_COOKIE_SECURE=true`로 설정해야 합니다.
+
+**환경별 설정 예시:**
+
+```yaml
+# HTTP 로컬 개발 환경
+environment:
+  SESSION_COOKIE_DOMAIN: .nubison.localhost
+  CSRF_COOKIE_DOMAIN: .nubison.localhost
+  # SESSION_COOKIE_SECURE: false (기본값, 생략 가능)
+  # CSRF_COOKIE_SECURE: false (기본값, 생략 가능)
+
+# HTTPS 개발/프로덕션 환경 (필수!)
+environment:
+  SESSION_COOKIE_DOMAIN: .nubison.io
+  CSRF_COOKIE_DOMAIN: .nubison.io
+  SESSION_COOKIE_SECURE: true  # ← HTTPS에서 반드시 필요!
+  CSRF_COOKIE_SECURE: true     # ← HTTPS에서 반드시 필요!
+  LABEL_STUDIO_HOST: https://label-dev.nubison.io
+```
 
 ### iframe 임베딩 보안 헤더 설정
 
@@ -254,6 +309,12 @@ http://label.yourdomain.com:8080/projects/1?hideHeader=true
 
 - `custom-templates/base.html`에서 JavaScript로 CSS 변수 강제 설정
 - `--header-height: 0px` 100ms마다 5초간 적용 (React SPA 대응)
+
+**추가 기능 (iframe 통합)**:
+
+- `hideHeader=true` 파라미터는 iframe 환경 감지에도 사용됨
+- 로그인 실패 시 일반 로그인 폼 대신 SSO 전용 안내 페이지 표시
+- 자세한 내용: [누비슨 통합 가이드 - iframe 통합](docs/NUBISON_INTEGRATION_GUIDE.md#iframe-통합)
 
 ### Annotation 소유권 제어
 

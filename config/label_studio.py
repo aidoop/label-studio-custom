@@ -130,8 +130,9 @@ DEBUG_PROPAGATE_EXCEPTIONS = get_bool_env('DEBUG_PROPAGATE_EXCEPTIONS', False)
 SESSION_COOKIE_NAME = get_env('SESSION_COOKIE_NAME', 'ls_sessionid')
 CSRF_COOKIE_NAME = get_env('CSRF_COOKIE_NAME', 'ls_csrftoken')
 
-# HTTPS 환경에서만 세션 쿠키 전송
+# HTTPS 환경에서만 쿠키 전송
 SESSION_COOKIE_SECURE = get_bool_env('SESSION_COOKIE_SECURE', False)
+CSRF_COOKIE_SECURE = get_bool_env('CSRF_COOKIE_SECURE', False)  # HTTPS 환경에서는 True 권장
 
 # 세션 엔진 설정 (서명된 쿠키 사용)
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
@@ -155,6 +156,7 @@ CSRF_COOKIE_DOMAIN = get_env('CSRF_COOKIE_DOMAIN', None)
 # - None: 모든 cross-site 요청 허용 (HTTPS + Secure 필수)
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
+
 
 # ==============================================================================
 # Sentry 에러 추적 설정 (선택사항)

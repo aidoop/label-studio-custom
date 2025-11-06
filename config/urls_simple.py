@@ -11,6 +11,7 @@ from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.urls import path, re_path
 from django.views.generic.base import RedirectView
+from custom_api.sso_views import sso_login_required
 
 urlpatterns = [
     # 메인 페이지
@@ -64,6 +65,13 @@ urlpatterns = [
     # Project API 오버라이드 (model_version validation bypass)
     # 중요: projects.urls보다 먼저 등록하여 기본 URL을 오버라이드
     path('api/projects/', include('custom_api.projects_urls')),
+
+    # ==============================================================================
+    # SSO 전용 로그인 페이지 오버라이드
+    # ==============================================================================
+    # Label Studio 직접 로그인을 막고 SSO 전용 메시지 표시
+    # 중요: users.urls보다 먼저 등록하여 기본 로그인 URL을 오버라이드
+    path('user/login/', sso_login_required, name='user-login'),
 
     # Label Studio 앱 URL 패턴
     re_path(r'^', include('organizations.urls')),

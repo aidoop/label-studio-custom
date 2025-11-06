@@ -94,16 +94,152 @@ app.get("/api/sso/token", async (req, res) => {
 
   // JWT 토큰을 쿠키에 설정
   res.cookie("ls_auth_token", tokenData.token, {
-    domain: ".example.com",
+    domain: ".example.com",      // 서브도메인 공유
     path: "/",
-    httpOnly: false,
-    sameSite: "lax",
+    secure: true,                // ⚠️ HTTPS 환경에서 필수!
+    httpOnly: false,             // iframe에서 접근 가능하도록
+    sameSite: "lax",             // CSRF 보호
     maxAge: tokenData.expires_in * 1000,
   });
 
   res.json(tokenData);
 });
 ```
+
+**⚠️ 중요 - 쿠키 설정 주의사항:**
+
+| 속성 | 값 | 설명 |
+|------|-----|------|
+| `domain` | `.example.com` | 점(.)으로 시작하여 서브도메인 간 공유 가능 |
+| `secure` | `true` | **HTTPS 환경에서 필수!** HTTP 로컬 개발 시에만 `false` |
+| `httpOnly` | `false` | iframe에서 쿠키 접근 가능하도록 설정 |
+| `sameSite` | `lax` | CSRF 보호, iframe 접근 허용 |
+
+**환경별 설정:**
+```javascript
+// HTTP 로컬 개발 환경
+res.cookie("ls_auth_token", token, {
+  domain: ".localhost",
+  secure: false,    // HTTP는 false
+  // ...
+});
+
+// HTTPS 개발/프로덕션 환경
+res.cookie("ls_auth_token", token, {
+  domain: ".example.com",
+  secure: true,     // HTTPS는 true (필수!)
+  // ...
+});
+```
+
+### 2-1. Custom SSO Token Validation API 사용 (권장)
+
+**v1.20.0-sso.22부터 추가**: 사용자 존재 여부를 먼저 검증한 후 JWT 토큰을 발급하는 API
+
+**언제 사용해야 하나요?**
+
+| 시나리오 | 기본 SSO API (`/api/sso/token`) | Custom SSO API (`/api/custom/sso/token`) |
+|---------|--------------------------------|------------------------------------------|
+| 폐쇄형 시스템 (사전 등록 필수) | ❌ 자동 계정 생성되어 부적합 | ✅ 사용자 없으면 404 오류 반환 |
+| 개방형 시스템 (누구나 접근) | ✅ 자동 계정 생성으로 편리 | ❌ 필요 없음 |
+| 에러 핸들링 필요 | ❌ 성공만 반환 | ✅ 명확한 에러 코드 제공 |
+| 배치 처리 필요 | ❌ 없음 | ✅ Batch API 제공 |
+
+**사용 예시 (권장 방식)**:
+
+```javascript
+// 누비슨 Backend API
+app.get("/api/sso/token", async (req, res) => {
+  const labelStudioEmail = req.query.email;  // "s111_gdh@gmail.com"
+
+  try {
+    // ✅ Custom SSO Token Validation API 사용
+    const response = await fetch(`${LABEL_STUDIO_URL}/api/custom/sso/token`, {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${LABEL_STUDIO_ADMIN_TOKEN}`,  // ← Admin 토큰 필요
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: labelStudioEmail }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+
+      // ✅ 명확한 에러 코드로 처리 가능
+      if (error.error_code === 'USER_NOT_FOUND') {
+        return res.status(404).json({
+          error: "Label Studio 계정이 없습니다. 관리자에게 문의하세요.",
+        });
+      } else if (error.error_code === 'USER_INACTIVE') {
+        return res.status(403).json({
+          error: "계정이 비활성 상태입니다. 관리자에게 문의하세요.",
+        });
+      }
+
+      throw new Error(`Token generation failed: ${error.error}`);
+    }
+
+    const tokenData = await response.json();
+    // { token: "eyJ...", expires_in: 600, user: {...} }
+
+    // JWT 토큰을 쿠키에 설정
+    res.cookie("ls_auth_token", tokenData.token, {
+      domain: ".example.com",
+      path: "/",
+      secure: true,
+      httpOnly: false,
+      sameSite: "lax",
+      maxAge: tokenData.expires_in * 1000,
+    });
+
+    res.json(tokenData);
+
+  } catch (error) {
+    console.error("SSO token error:", error);
+    res.status(500).json({ error: "토큰 발급 실패" });
+  }
+});
+```
+
+**배치 토큰 발급 (여러 사용자 동시 처리)**:
+
+```javascript
+// 여러 사용자에게 일괄 토큰 발급
+app.post("/api/sso/batch-token", async (req, res) => {
+  const { emails } = req.body;  // ["s111_user1@gmail.com", "s111_user2@gmail.com"]
+
+  const response = await fetch(`${LABEL_STUDIO_URL}/api/custom/sso/batch-token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Token ${LABEL_STUDIO_ADMIN_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ emails }),
+  });
+
+  const result = await response.json();
+  /*
+  {
+    "total": 2,
+    "success": 1,
+    "failed": 1,
+    "results": {
+      "success": [
+        { "email": "s111_user1@gmail.com", "token": "...", "user": {...} }
+      ],
+      "failed": [
+        { "email": "s111_user2@gmail.com", "error": "User not found", "error_code": "USER_NOT_FOUND" }
+      ]
+    }
+  }
+  */
+
+  res.json(result);
+});
+```
+
+**자세한 문서**: [Custom SSO Token API Guide](./CUSTOM_SSO_TOKEN_API.md)
 
 ### 3. 이메일 변경
 
@@ -373,8 +509,188 @@ User 2 (Org 2): s222_gdh@gmail.com
 
 ---
 
+## iframe 통합
+
+### 1. iframe으로 Label Studio 임베딩
+
+누비슨 콘솔에서 Label Studio를 iframe으로 임베딩할 때 `hideHeader=true` 파라미터를 사용하세요.
+
+```html
+<!-- 누비슨 콘솔 (Vue 3) -->
+<template>
+  <div class="labelstudio-container">
+    <iframe
+      :src="labelStudioUrl"
+      frameborder="0"
+      style="width: 100%; height: 100vh;"
+    />
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+
+const projectId = 123;
+
+// ✅ hideHeader=true 파라미터 추가
+const labelStudioUrl = computed(() =>
+  `https://labelstudio.example.com/projects/${projectId}?hideHeader=true`
+);
+</script>
+```
+
+**hideHeader 파라미터의 역할:**
+1. ✅ Label Studio 헤더 완전 제거 (전체 화면 활용)
+2. ✅ iframe 환경 감지 (로그인 실패 시 SSO 안내 페이지 표시)
+
+### 2. 인증 오류 처리 (postMessage)
+
+iframe에서 인증 오류 발생 시 부모 창으로 메시지가 전달됩니다.
+
+```javascript
+// 누비슨 콘솔 (부모 창)
+window.addEventListener('message', (event) => {
+  if (event.data.type === 'LABEL_STUDIO_AUTH_ERROR') {
+    console.log('Label Studio 인증 오류:', event.data);
+    // {
+    //   type: 'LABEL_STUDIO_AUTH_ERROR',
+    //   error: 'UNAUTHORIZED_ACCESS',
+    //   message: 'SSO authentication required'
+    // }
+
+    // 처리 방법 1: iframe 숨기고 재인증 유도
+    document.getElementById('labelstudio-iframe').style.display = 'none';
+    showReauthenticationDialog();
+
+    // 처리 방법 2: 자동으로 토큰 재발급 시도
+    refreshSSOToken().then((newToken) => {
+      // 새 토큰으로 iframe 리로드
+      location.reload();
+    });
+  }
+});
+```
+
+### 3. iframe 통합 전체 예시
+
+```vue
+<!-- 누비슨 콘솔 - LabelStudioIframe.vue -->
+<template>
+  <div class="labelstudio-wrapper">
+    <!-- 로딩 상태 -->
+    <div v-if="loading" class="loading">
+      <p>Label Studio 로딩 중...</p>
+    </div>
+
+    <!-- 인증 오류 -->
+    <div v-else-if="authError" class="error">
+      <p>인증이 만료되었습니다.</p>
+      <button @click="handleReauth">다시 로그인</button>
+    </div>
+
+    <!-- Label Studio iframe -->
+    <iframe
+      v-else
+      :src="labelStudioUrl"
+      frameborder="0"
+      class="labelstudio-iframe"
+      @load="onIframeLoad"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useLabelStudioSSO } from '@/composables/useLabelStudioSSO';
+
+const props = defineProps({
+  projectId: { type: Number, required: true },
+});
+
+const loading = ref(true);
+const authError = ref(false);
+const { generateSSOToken } = useLabelStudioSSO();
+
+// Label Studio URL (hideHeader=true)
+const labelStudioUrl = computed(() =>
+  `https://labelstudio.example.com/projects/${props.projectId}?hideHeader=true`
+);
+
+// iframe 로드 완료
+function onIframeLoad() {
+  loading.value = false;
+}
+
+// 재인증 처리
+async function handleReauth() {
+  loading.value = true;
+  authError.value = false;
+
+  try {
+    await generateSSOToken();
+    location.reload();
+  } catch (error) {
+    console.error('재인증 실패:', error);
+  }
+}
+
+// postMessage 리스너
+function handleMessage(event) {
+  if (event.data.type === 'LABEL_STUDIO_AUTH_ERROR') {
+    loading.value = false;
+    authError.value = true;
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('message', handleMessage);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('message', handleMessage);
+});
+</script>
+
+<style scoped>
+.labelstudio-wrapper {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+}
+
+.labelstudio-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.loading, .error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+</style>
+```
+
+### 4. CSP (Content-Security-Policy) 설정
+
+iframe 임베딩을 위해 Label Studio의 CSP 설정이 필요합니다.
+
+**Label Studio 환경변수:**
+```yaml
+environment:
+  # 누비슨 콘솔 도메인 허용
+  CSP_FRAME_ANCESTORS: "'self' https://console-dev.nubison.io https://console.nubison.io"
+```
+
+**자세한 문서**: [DEPLOYMENT.md - iframe 임베딩 보안 헤더 설정](../DEPLOYMENT.md#iframe-임베딩-보안-헤더-설정)
+
+---
+
 ## 참고 자료
 
 - [Label Studio SSO 가이드](https://labelstud.io/guide/auth_setup.html)
 - [Label Studio API 문서](https://labelstud.io/api)
 - [label-studio-sso 패키지](https://pypi.org/project/label-studio-sso/)
+- [Custom SSO Token API Guide](./CUSTOM_SSO_TOKEN_API.md)

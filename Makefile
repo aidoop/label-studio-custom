@@ -1,7 +1,7 @@
 # Label Studio Custom - Makefile
 # 개발 및 테스트 편의성을 위한 명령어 모음
 
-.PHONY: help build up down logs test test-quick test-all clean test-date test-timezone test-kst restart
+.PHONY: help build up down logs test test-quick test-all clean test-date test-timezone test-kst test-sso test-sso-token test-sso-batch restart
 
 # 기본 명령어: help
 help:
@@ -21,6 +21,9 @@ help:
 	@echo "  make test        - 전체 테스트 실행 (환경 시작부터)"
 	@echo "  make test-quick  - 빠른 테스트 (환경이 실행 중일 때)"
 	@echo "  make test-all    - 모든 Custom Export API 테스트"
+	@echo "  make test-sso    - 모든 SSO Token Validation API 테스트"
+	@echo "  make test-sso-token  - Single SSO Token API 테스트"
+	@echo "  make test-sso-batch  - Batch SSO Token API 테스트"
 	@echo "  make test-date   - 날짜 필터 테스트만 실행"
 	@echo "  make test-timezone - 타임존 테스트만 실행"
 	@echo "  make test-kst    - KST 타임존 테스트만 실행"
@@ -91,6 +94,22 @@ test-mixed:
 test-boundary:
 	@echo "🎯 Boundary conditions 테스트 실행..."
 	@bash scripts/run_quick_test.sh test_export_date_boundary_conditions
+
+# SSO Token Validation API 테스트
+test-sso:
+	@echo "🔐 모든 SSO Token Validation API 테스트 실행..."
+	@docker compose -f docker-compose.test.yml exec -T labelstudio \
+		bash -c "cd /label-studio/label_studio && python manage.py test custom_api.tests.ValidatedSSOTokenAPITest custom_api.tests.BatchValidateSSOTokenAPITest --verbosity=2 --keepdb"
+
+test-sso-token:
+	@echo "🔑 Single SSO Token API 테스트 실행..."
+	@docker compose -f docker-compose.test.yml exec -T labelstudio \
+		bash -c "cd /label-studio/label_studio && python manage.py test custom_api.tests.ValidatedSSOTokenAPITest --verbosity=2 --keepdb"
+
+test-sso-batch:
+	@echo "🔑 Batch SSO Token API 테스트 실행..."
+	@docker compose -f docker-compose.test.yml exec -T labelstudio \
+		bash -c "cd /label-studio/label_studio && python manage.py test custom_api.tests.BatchValidateSSOTokenAPITest --verbosity=2 --keepdb"
 
 # 개발 편의 명령어
 shell:
