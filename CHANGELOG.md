@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.24] - 2025-11-07
+
+### Changed
+
+#### SSO_AUTO_CREATE_USERS 기능 제거
+- **목적**: Custom SSO Token Validation API 사용으로 불필요
+- **변경 내용**:
+  - `SSO_AUTO_CREATE_USERS` 환경변수 제거
+  - `config/label_studio.py`에서 `False`로 고정
+  - 사전 등록된 사용자만 접근 가능 (폐쇄형 시스템)
+- **이유**:
+  - Custom SSO Token API는 사용자 존재 여부를 먼저 검증
+  - 사용자가 없으면 `USER_NOT_FOUND` 에러 반환
+  - 자동 생성 기능이 의미 없어짐
+- **영향**: 기본 SSO API(`/api/sso/token`)를 직접 사용하는 경우에만 영향
+
 ## [1.20.0-sso.23] - 2025-11-07
 
 ### Added

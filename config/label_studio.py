@@ -100,10 +100,10 @@ JWT_SSO_TOKEN_PARAM = get_env('JWT_SSO_TOKEN_PARAM', 'token')
 # 기본값: 600초 (10분)
 SSO_TOKEN_EXPIRY = int(get_env('SSO_TOKEN_EXPIRY', '600'))
 
-# SSO API를 통한 사용자 자동 생성 활성화
-# True: 존재하지 않는 사용자는 자동으로 생성
-# False: 이미 존재하는 사용자만 로그인 가능
-SSO_AUTO_CREATE_USERS = get_bool_env('SSO_AUTO_CREATE_USERS', True)
+# SSO API를 통한 사용자 자동 생성 비활성화
+# Custom SSO Token Validation API를 사용하므로 자동 생성 불필요
+# 사전 등록된 사용자만 접근 가능 (폐쇄형 시스템)
+SSO_AUTO_CREATE_USERS = False
 
 # ==============================================================================
 # 기타 Label Studio 설정
