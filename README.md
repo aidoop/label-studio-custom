@@ -25,6 +25,7 @@
   - 원활한 사용자 전환 (세션 충돌 없음)
 - 쿠키 및 URL 파라미터 지원
 - 사용자 자동 생성
+- **📘 배포 가이드**: [HTTPS 환경 배포 시 필수 설정](docs/HTTPS_DEPLOYMENT_GUIDE.md) (프로덕션/개발 서버)
 
 ### 2. hideHeader 기능
 
@@ -712,6 +713,9 @@ label-studio-custom/
 │
 ├── docs/                           # 상세 문서
 │   ├── CUSTOM_EXPORT_API_GUIDE.md # Custom Export API 가이드
+│   ├── CUSTOM_SSO_TOKEN_API.md    # Custom SSO Token API 가이드
+│   ├── HTTPS_DEPLOYMENT_GUIDE.md  # HTTPS 배포 가이드 (프로덕션/개발 서버)
+│   ├── NUBISON_INTEGRATION_GUIDE.md # 누비슨 통합 가이드 (iframe)
 │   ├── FEATURES.md
 │   ├── DEPLOYMENT.md
 │   └── CUSTOMIZATION_GUIDE.md
