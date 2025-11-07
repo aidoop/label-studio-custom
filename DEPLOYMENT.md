@@ -50,7 +50,7 @@ services:
       # SSO 설정
       # ================================================================
       JWT_SSO_COOKIE_NAME: ls_auth_token
-      SSO_AUTO_CREATE_USERS: "true"
+      # 참고: SSO_AUTO_CREATE_USERS는 False로 고정 (v1.20.0-sso.24+)
 
       # ================================================================
       # iframe 보안 헤더 (선택)

@@ -107,7 +107,7 @@ services:
       # SSO 설정
       JWT_SSO_COOKIE_NAME: ls_auth_token
       JWT_SSO_NATIVE_USER_ID_CLAIM: user_id
-      SSO_AUTO_CREATE_USERS: false  # 사전 등록 사용자만 허용
+      # 참고: SSO_AUTO_CREATE_USERS는 False로 고정 (v1.20.0-sso.24+)
 ```
 
 ### 2단계: SSO 백엔드(누비슨 콘솔) 쿠키 설정
@@ -207,7 +207,7 @@ services:
       # SSO 설정
       JWT_SSO_COOKIE_NAME: ls_auth_token
       JWT_SSO_NATIVE_USER_ID_CLAIM: user_id
-      SSO_AUTO_CREATE_USERS: false
+      # 참고: SSO_AUTO_CREATE_USERS는 False로 고정 (v1.20.0-sso.24+)
 
       # 로그 레벨
       LOG_LEVEL: INFO

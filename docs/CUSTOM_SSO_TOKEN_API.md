@@ -6,10 +6,11 @@
 
 ### 왜 필요한가?
 
-기본 SSO Token API (`/api/sso/token`)는 `SSO_AUTO_CREATE_USERS=true` 설정 시, 존재하지 않는 사용자에 대해서도 JWT 토큰을 발급하고 자동으로 계정을 생성합니다. 이는 일부 시나리오에서는 바람직하지 않을 수 있습니다:
+폐쇄형 시스템에서는 사전 등록된 사용자만 접근을 허용해야 하는 경우가 많습니다. 이러한 요구사항을 충족하기 위해:
 
-- **문제 1**: 존재하지 않는 사용자에게도 토큰이 발급됨
-- **문제 2**: 사용자가 실제로 존재하는지 확인 후 토큰 발급이 필요한 경우
+- **요구사항**: 존재하지 않는 사용자에게는 토큰 발급 불가
+- **요구사항**: 사용자가 실제로 존재하는지 확인 후 토큰 발급
+- **해결**: `SSO_AUTO_CREATE_USERS`를 `False`로 고정하고, Custom SSO Token Validation API 사용
 
 **Custom SSO Token Validation API**는 다음을 제공합니다:
 
@@ -339,14 +340,14 @@ app.post('/labelstudio/bulk-invite', async (req, res) => {
 
 | 항목 | 기본 `/api/sso/token` | Custom `/api/custom/sso/token` |
 |------|------------------------|--------------------------------|
-| **사용자 존재 확인** | ❌ 확인 안 함 (자동 생성) | ✅ 사전 확인 |
-| **자동 계정 생성** | ✅ `SSO_AUTO_CREATE_USERS=true` 시 | ❌ 생성 안 함 |
-| **사용자 없음 처리** | 200 OK (새 계정 생성) | 404 NOT FOUND |
-| **비활성 사용자** | 토큰 발급됨 | 403 FORBIDDEN |
+| **사용자 존재 확인** | ❌ 확인 안 함 | ✅ 사전 확인 |
+| **자동 계정 생성** | ❌ 생성 안 함 (`SSO_AUTO_CREATE_USERS=False` 고정) | ❌ 생성 안 함 |
+| **사용자 없음 처리** | JWT 발급 실패 | 422 UNPROCESSABLE ENTITY |
+| **비활성 사용자** | JWT 발급 실패 | 403 FORBIDDEN |
 | **에러 코드** | ❌ 없음 | ✅ `USER_NOT_FOUND`, `USER_INACTIVE` |
 | **배치 처리** | ❌ 없음 | ✅ Batch API 제공 |
 | **권한** | `IsAuthenticated` | `IsAdminUser` |
-| **사용 시나리오** | 개방형 SSO (누구나 접근) | 폐쇄형 SSO (사전 등록 필수) |
+| **사용 시나리오** | 기본 SSO 인증 | 폐쇄형 SSO (사전 등록 필수) + 명확한 에러 처리 |
 
 ---
 

@@ -96,8 +96,8 @@
 
 - **목적**: 존재하지 않는 사용자에 대한 토큰 발급 방지 및 사전 검증
 - **문제 해결**:
-  - 기본 SSO API는 `SSO_AUTO_CREATE_USERS=true` 시 존재하지 않는 사용자도 자동 생성
   - 폐쇄형 시스템에서는 사전 등록된 사용자만 접근 허용 필요
+  - 사용자 자동 생성 비활성화 (`SSO_AUTO_CREATE_USERS=False`로 고정)
 - **주요 기능**:
   - **사전 사용자 검증**: 토큰 발급 전 사용자 존재 여부 확인
   - **명확한 에러 코드**: `USER_NOT_FOUND`, `USER_INACTIVE` 등 상세 오류 반환
@@ -133,7 +133,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.23
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.25
 
     depends_on:
       - postgres
@@ -152,7 +152,7 @@ services:
       JWT_SSO_COOKIE_NAME: ls_auth_token
       JWT_SSO_TOKEN_PARAM: token
       SSO_TOKEN_EXPIRY: 600
-      SSO_AUTO_CREATE_USERS: true
+      # SSO_AUTO_CREATE_USERS는 False로 고정 (환경변수 제거됨)
 
       # Cookie Domain (for subdomain sharing)
       SESSION_COOKIE_DOMAIN: .yourdomain.com
@@ -190,8 +190,8 @@ docker build -t label-studio-custom:local .
 # 실행
 docker run -p 8080:8080 \
   -e JWT_SSO_COOKIE_NAME=ls_auth_token \
-  -e SSO_AUTO_CREATE_USERS=true \
   label-studio-custom:local
+# 참고: SSO_AUTO_CREATE_USERS는 False로 고정되어 환경변수 설정 불가
 ```
 
 ## 환경 변수
@@ -217,7 +217,8 @@ docker run -p 8080:8080 \
 | `JWT_SSO_COOKIE_NAME`          | JWT 토큰 쿠키 이름         | `ls_auth_token` |
 | `JWT_SSO_TOKEN_PARAM`          | JWT 토큰 URL 파라미터      | `token`         |
 | `SSO_TOKEN_EXPIRY`             | 토큰 만료 시간(초)         | `600`           |
-| `SSO_AUTO_CREATE_USERS`        | 사용자 자동 생성 여부      | `true`          |
+
+**참고**: `SSO_AUTO_CREATE_USERS`는 v1.20.0-sso.24부터 `False`로 고정되어 환경변수 설정이 불가능합니다. Custom SSO Token Validation API를 사용하여 사전 등록된 사용자만 접근 가능합니다.
 
 ### 쿠키 설정 (서브도메인 공유)
 
