@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.29] - 2025-11-07
+
+### Added
+
+#### Admin User List API with Superuser Information
+- **목적**: 사용자 목록 조회 시 is_superuser 필드 포함
+- **문제 해결**:
+  - 기존: Label Studio 기본 `/api/users/` API는 보안상 is_superuser 필드를 null로 반환
+  - 문제점: 테스트 환경에서 사용자 목록 조회 시 superuser 여부 확인 불가
+- **구현 방식**: Custom Admin API 추가
+  ```python
+  # GET /api/admin/users/list
+  class ListUsersAPI(APIView):
+      permission_classes = [IsAdminUser]
+
+      def get(self, request):
+          users = User.objects.all().order_by('-id')
+          # is_superuser, is_staff, is_active 등 포함
+  ```
+- **주요 기능**:
+  - Admin 권한 사용자만 접근 가능
+  - 모든 사용자 정보 조회 (is_superuser, is_staff, is_active 포함)
+  - active_organization ID 반환 (ForeignKey를 int로 변환)
+- **파일**:
+  - `custom-api/admin_users.py` (ListUsersAPI 추가)
+  - `custom-api/urls.py` (URL 패턴 등록)
+
+### Fixed
+
+#### Active Organization Serialization Error
+- JSON 직렬화 시 ForeignKey 객체를 int로 변환하도록 수정
+- 500 에러 방지
+
+### Technical Details
+
+- **권한 체크**: IsAdminUser permission class 사용
+- **정렬**: 최신 사용자부터 조회 (order_by('-id'))
+- **응답 형식**:
+  ```json
+  {
+    "success": true,
+    "count": 10,
+    "users": [
+      {
+        "id": 1,
+        "email": "user@example.com",
+        "is_superuser": true,
+        "is_staff": true,
+        "active_organization": 1
+      }
+    ]
+  }
+  ```
+
 ## [1.20.0-sso.27] - 2025-11-07
 
 ### Added

@@ -274,3 +274,67 @@ class DemoteFromSuperuserAPI(APIView):
                 {'success': False, 'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class ListUsersAPI(APIView):
+    """
+    전체 사용자 목록 조회 (is_superuser 포함)
+
+    GET /api/admin/users/list
+
+    권한: Admin 사용자만 접근 가능
+
+    Response:
+    {
+        "success": true,
+        "count": 10,
+        "users": [
+            {
+                "id": 1,
+                "email": "user@example.com",
+                "username": "user",
+                "first_name": "John",
+                "last_name": "Doe",
+                "is_superuser": true,
+                "is_staff": true,
+                "is_active": true,
+                "active_organization": 1
+            },
+            ...
+        ]
+    }
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        try:
+            # 모든 사용자 조회
+            users = User.objects.all().order_by('-id')
+
+            # 사용자 데이터 구성
+            users_data = []
+            for user in users:
+                user_data = {
+                    'id': user.id,
+                    'email': user.email,
+                    'username': user.username,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'is_superuser': user.is_superuser,
+                    'is_staff': user.is_staff,
+                    'is_active': user.is_active,
+                    'active_organization': user.active_organization if isinstance(user.active_organization, int) else (user.active_organization.id if user.active_organization else None),
+                }
+                users_data.append(user_data)
+
+            return Response({
+                'success': True,
+                'count': len(users_data),
+                'users': users_data
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {'success': False, 'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

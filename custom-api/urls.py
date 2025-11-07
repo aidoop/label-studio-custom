@@ -8,7 +8,7 @@ Admin 전용 사용자 관리 API를 제공합니다.
 from django.urls import path
 from custom_api.annotations import AnnotationAPI
 from custom_api.projects import ProjectAPI
-from custom_api.admin_users import CreateSuperuserAPI, PromoteToSuperuserAPI, DemoteFromSuperuserAPI
+from custom_api.admin_users import CreateSuperuserAPI, PromoteToSuperuserAPI, DemoteFromSuperuserAPI, ListUsersAPI
 from custom_api.export import CustomExportAPI
 from custom_api.users import user_detail, user_by_email
 
@@ -21,6 +21,7 @@ urlpatterns = [
     path('<int:pk>/', AnnotationAPI.as_view(), name='annotation-detail'),
 
     # Admin User Management APIs
+    path('admin/users/list', ListUsersAPI.as_view(), name='list-users'),
     path('admin/users/create-superuser', CreateSuperuserAPI.as_view(), name='create-superuser'),
     path('admin/users/<int:user_id>/promote-to-superuser', PromoteToSuperuserAPI.as_view(), name='promote-to-superuser'),
     path('admin/users/<int:user_id>/demote-from-superuser', DemoteFromSuperuserAPI.as_view(), name='demote-from-superuser'),
