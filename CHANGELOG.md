@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.27] - 2025-11-07
+
+### Added
+
+#### Automatic active_organization Setting via Django Signals
+- **목적**: 사용자가 Organization에 추가될 때 active_organization 자동 설정
+- **문제 해결**:
+  - 기존: 사용자가 Organization에 추가되어도 active_organization은 None
+  - 문제점: active_organization이 None인 사용자가 다른 사용자를 생성하려고 하면 500 에러 발생
+    ```python
+    # /label-studio/label_studio/users/api.py
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        self.request.user.active_organization.add_user(instance)  # active_organization이 None이면 에러
+    ```
+- **구현 방식**: Django Signal을 사용한 자동화
+  ```python
+  @receiver(post_save, sender=OrganizationMember)
+  def set_active_organization_on_membership(sender, instance, created, **kwargs):
+      if created and instance.user.active_organization is None:
+          instance.user.active_organization = instance.organization
+          instance.user.save(update_fields=['active_organization'])
+  ```
+- **주요 기능**:
+  - OrganizationMember 생성 시 자동으로 active_organization 설정
+  - 이미 active_organization이 있는 경우는 변경하지 않음
+  - 수동 설정 없이 완전 자동화
+- **영향**:
+  - API로 사용자 생성 시 더 이상 500 에러 발생하지 않음
+  - 사용자 경험 개선 (수동 설정 불필요)
+  - 데이터 일관성 향상
+- **파일**:
+  - `custom-api/signals.py` (새로 추가)
+  - `custom-api/apps.py` (새로 추가 - Signal 등록)
+  - `config/label_studio.py` (CustomApiConfig 등록)
+  - `Dockerfile` (버전 업데이트: 1.20.0-sso.27)
+
+### Technical Details
+
+- **Signal 등록**: AppConfig의 `ready()` 메서드에서 자동 로드
+- **로깅**: active_organization 설정 시 INFO 레벨 로그 출력
+- **성능**: post_save 시그널이므로 최소한의 오버헤드
+- **안전성**: 이미 active_organization이 있는 경우 건너뛰어 기존 설정 보호
+
 ## [1.20.0-sso.26] - 2025-11-07
 
 ### Changed

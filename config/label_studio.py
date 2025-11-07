@@ -52,6 +52,7 @@ else:
 INSTALLED_APPS += [
     'label_studio_sso',                                               # SSO 인증 앱
     'label_studio.custom_permissions.apps.CustomPermissionsConfig',   # 커스텀 권한 관리
+    'label_studio.custom_api.apps.CustomApiConfig',                   # 커스텀 API (Signals 포함)
     # Note: Webhook payload enrichment는 Dockerfile의 patch_webhooks.py로 직접 소스 패치
 ]
 
