@@ -12,7 +12,6 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAdminUser
-from rest_framework.renderers import JSONRenderer
 
 User = get_user_model()
 
@@ -77,50 +76,50 @@ class ValidatedSSOTokenAPI(APIView):
     }
     """
     permission_classes = [IsAdminUser]
-    renderer_classes = [JSONRenderer]
 
     def post(self, request):
+        # 이메일 검증
+        email = request.data.get('email')
+
+        if not email:
+            return Response(
+                {
+                    'success': False,
+                    'error': 'email is required',
+                    'error_code': 'INVALID_REQUEST'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 사용자 존재 여부 확인
         try:
-            # 이메일 검증
-            email = request.data.get('email')
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            # 422 Unprocessable Entity 사용 (404는 Django가 HTML로 렌더링함)
+            return Response(
+                {
+                    'success': False,
+                    'error': f'User not found: {email}',
+                    'error_code': 'USER_NOT_FOUND',
+                    'email': email
+                },
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY
+            )
 
-            if not email:
-                return Response(
-                    {
-                        'success': False,
-                        'error': 'email is required',
-                        'error_code': 'INVALID_REQUEST'
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+        # 사용자가 비활성화된 경우
+        if not user.is_active:
+            return Response(
+                {
+                    'success': False,
+                    'error': f'User is inactive: {email}',
+                    'error_code': 'USER_INACTIVE',
+                    'email': email
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-            # 사용자 존재 여부 확인
-            try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
-                return Response(
-                    {
-                        'success': False,
-                        'error': f'User not found: {email}',
-                        'error_code': 'USER_NOT_FOUND',
-                        'email': email
-                    },
-                    status=status.HTTP_404_NOT_FOUND
-                )
-
-            # 사용자가 비활성화된 경우
-            if not user.is_active:
-                return Response(
-                    {
-                        'success': False,
-                        'error': f'User is inactive: {email}',
-                        'error_code': 'USER_INACTIVE',
-                        'email': email
-                    },
-                    status=status.HTTP_403_FORBIDDEN
-                )
-
-            # JWT 토큰 생성
+        # JWT 토큰 생성
+        try:
             token_expiry = getattr(settings, 'SSO_TOKEN_EXPIRY', 600)
             token = generate_jwt_token(user, expiry_seconds=token_expiry)
 
@@ -140,7 +139,6 @@ class ValidatedSSOTokenAPI(APIView):
                 },
                 status=status.HTTP_200_OK
             )
-
         except Exception as e:
             return Response(
                 {
@@ -197,7 +195,6 @@ class BatchValidateSSOTokenAPI(APIView):
     }
     """
     permission_classes = [IsAdminUser]
-    renderer_classes = [JSONRenderer]
 
     def post(self, request):
         try:
