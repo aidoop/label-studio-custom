@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.30] - 2025-11-07
+
+### Added
+
+#### Custom Version API Override
+- **목적**: UI에서 커스텀 버전 정보 표시 (v1.20.0-sso.30 등)
+- **문제 해결**:
+  - 기존: Label Studio UI는 기본 버전만 표시 (v1.20.0)
+  - 개선: 커스텀 빌드 버전 및 추가 기능 정보 표시
+- **구현 방식**: `/api/version` API 오버라이드
+  ```python
+  # GET /api/version
+  class CustomVersionAPI(APIView):
+      permission_classes = []  # Public API
+
+      def get(self, request):
+          # 기존 Label Studio 버전 정보 가져오기
+          # 커스텀 필드 추가
+          base_response['custom_version'] = '1.20.0-sso.30'
+          base_response['custom_edition'] = 'Community + SSO Custom'
+          base_response['custom_features'] = [...]
+  ```
+- **주요 기능**:
+  - 기존 Label Studio 버전 정보 유지
+  - 커스텀 버전, 에디션, 릴리스 날짜 추가
+  - 커스텀 기능 목록 표시
+  - JSON 및 HTML 응답 지원
+- **파일**:
+  - `custom-api/version.py` (CustomVersionAPI 신규 추가)
+  - `custom-api/urls.py` (version URL 패턴 등록)
+  - `config/urls_simple.py` (API 오버라이드 설정)
+- **환경 변수**:
+  - `CUSTOM_VERSION`: 커스텀 버전 번호 (기본값: 1.20.0-sso.30)
+  - `CUSTOM_RELEASE_DATE`: 릴리스 날짜 (기본값: 2025-11-07)
+
+### Technical Details
+
+- **URL 라우팅**: urls_simple.py에서 기본 version URL보다 먼저 등록
+- **하위 호환성**: 기존 Label Studio 버전 정보 모두 포함
+- **API 응답 예시**:
+  ```json
+  {
+    "release": "1.20.0",
+    "custom_version": "1.20.0-sso.30",
+    "custom_edition": "Community + SSO Custom",
+    "custom_release_date": "2025-11-07",
+    "custom_features": [
+      "Admin User List API with Superuser Info",
+      "Admin User Management (Create/Promote/Demote Superuser)",
+      "Active Organization Signal (Auto-set on membership)",
+      "Custom Export API with Date Filtering",
+      "SSO Token Validation API",
+      "Custom SSO Login Page for iframe",
+      "Enhanced Security (CSRF, CSP, X-Frame-Options)"
+    ]
+  }
+  ```
+
 ## [1.20.0-sso.29] - 2025-11-07
 
 ### Added
