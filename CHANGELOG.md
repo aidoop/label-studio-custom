@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.26] - 2025-11-07
+
+### Changed
+
+#### Simplified SSO Architecture - Removed Custom SSO API
+- **목적**: 중복 코드 제거 및 아키텍처 단순화
+- **변경 내용**:
+  - `custom-api/sso.py` 파일 제거 (Custom SSO Token Validation API)
+  - `label-studio-sso` v6.0.8로 업그레이드
+  - 기본 SSO API(`/api/sso/token`) 사용으로 통합
+- **이유**:
+  - `label-studio-sso`도 우리가 관리하는 저장소
+  - Custom API를 별도로 만들 필요 없이 직접 수정 가능
+  - 중복 코드 제거로 유지보수성 향상
+- **Breaking Changes**:
+  - Custom SSO API 엔드포인트 제거:
+    - ~~`POST /api/custom/sso/token`~~ → `POST /api/sso/token`
+    - ~~`POST /api/custom/sso/batch-token`~~ (제거)
+  - 클라이언트는 `/api/sso/token` 엔드포인트 사용 필요
+
+### Dependencies
+
+- **label-studio-sso**: 6.0.7 → 6.0.8
+  - `SSO_AUTO_CREATE_USERS` 기능 완전 제거
+  - 사용자가 없으면 422 에러 반환 (JSON)
+  - Django DEBUG=False에서도 정상 동작
+
 ## [1.20.0-sso.25] - 2025-11-07
 
 ### Fixed
