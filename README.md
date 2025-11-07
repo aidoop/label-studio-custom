@@ -14,7 +14,7 @@
 
 ### 1. SSO 인증 (Native JWT)
 
-- **label-studio-sso v6.0.7** 통합 (커스텀 빌드)
+- **label-studio-sso v6.0.8** 통합
 - JWT 토큰 기반 초기 인증
 - **JWT → Django Session 전환**: 성능 최적화
   - JWT 인증 성공 시 Django Session 생성
@@ -24,7 +24,9 @@
   - 미들웨어 수정: JWT 토큰 있으면 기존 세션 무시
   - 원활한 사용자 전환 (세션 충돌 없음)
 - 쿠키 및 URL 파라미터 지원
-- 사용자 자동 생성
+- **사전 등록 사용자만 접근 가능** (폐쇄형 시스템)
+  - 존재하지 않는 사용자는 422 에러 반환
+  - 사용자 자동 생성 기능 제거됨 (v6.0.8)
 - **📘 배포 가이드**: [HTTPS 환경 배포 시 필수 설정](docs/HTTPS_DEPLOYMENT_GUIDE.md) (프로덕션/개발 서버)
 
 ### 2. hideHeader 기능
@@ -92,23 +94,7 @@
   - v1.20.0-sso.23 (Custom SSO Token API, SSO 로그인 페이지 추가)
 - **문서**: [Custom Export API Guide](docs/CUSTOM_EXPORT_API_GUIDE.md)
 
-### 8. Custom SSO Token Validation API
-
-- **목적**: 존재하지 않는 사용자에 대한 토큰 발급 방지 및 사전 검증
-- **문제 해결**:
-  - 폐쇄형 시스템에서는 사전 등록된 사용자만 접근 허용 필요
-  - 사용자 자동 생성 비활성화 (`SSO_AUTO_CREATE_USERS=False`로 고정)
-- **주요 기능**:
-  - **사전 사용자 검증**: 토큰 발급 전 사용자 존재 여부 확인
-  - **명확한 에러 코드**: `USER_NOT_FOUND`, `USER_INACTIVE` 등 상세 오류 반환
-  - **배치 처리**: 여러 사용자에 대한 토큰 일괄 발급
-  - **Admin 전용**: `IsAdminUser` 권한으로 보안 강화
-- **엔드포인트**:
-  - `POST /api/custom/sso/token` - 단일 사용자 토큰 발급
-  - `POST /api/custom/sso/batch-token` - 여러 사용자 일괄 토큰 발급
-- **문서**: [Custom SSO Token API Guide](docs/CUSTOM_SSO_TOKEN_API.md)
-
-### 9. SSO 전용 로그인 페이지
+### 8. SSO 전용 로그인 페이지
 
 - **목적**: iframe 통합 시 Label Studio 직접 로그인 차단, SSO 전용 접근 유도
 - **문제 해결**: iframe에서 잘못된 JWT 토큰 사용 시 일반 로그인 폼 대신 SSO 안내 페이지 표시
@@ -133,7 +119,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.25
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.26
 
     depends_on:
       - postgres
@@ -152,7 +138,6 @@ services:
       JWT_SSO_COOKIE_NAME: ls_auth_token
       JWT_SSO_TOKEN_PARAM: token
       SSO_TOKEN_EXPIRY: 600
-      # SSO_AUTO_CREATE_USERS는 False로 고정 (환경변수 제거됨)
 
       # Cookie Domain (for subdomain sharing)
       SESSION_COOKIE_DOMAIN: .yourdomain.com
@@ -191,7 +176,6 @@ docker build -t label-studio-custom:local .
 docker run -p 8080:8080 \
   -e JWT_SSO_COOKIE_NAME=ls_auth_token \
   label-studio-custom:local
-# 참고: SSO_AUTO_CREATE_USERS는 False로 고정되어 환경변수 설정 불가
 ```
 
 ## 환경 변수
@@ -218,7 +202,7 @@ docker run -p 8080:8080 \
 | `JWT_SSO_TOKEN_PARAM`          | JWT 토큰 URL 파라미터      | `token`         |
 | `SSO_TOKEN_EXPIRY`             | 토큰 만료 시간(초)         | `600`           |
 
-**참고**: `SSO_AUTO_CREATE_USERS`는 v1.20.0-sso.24부터 `False`로 고정되어 환경변수 설정이 불가능합니다. Custom SSO Token Validation API를 사용하여 사전 등록된 사용자만 접근 가능합니다.
+**참고**: v1.20.0-sso.26부터 사용자 자동 생성 기능이 제거되었습니다. 사전 등록된 사용자만 SSO 로그인이 가능합니다.
 
 ### 쿠키 설정 (서브도메인 공유)
 

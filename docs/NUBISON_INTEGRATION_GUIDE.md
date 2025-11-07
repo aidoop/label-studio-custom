@@ -132,20 +132,11 @@ res.cookie("ls_auth_token", token, {
 });
 ```
 
-### 2-1. Custom SSO Token Validation API 사용 (권장)
+### 2-1. 에러 처리
 
-**v1.20.0-sso.22부터 추가**: 사용자 존재 여부를 먼저 검증한 후 JWT 토큰을 발급하는 API
+**v1.20.0-sso.26부터 변경**: 사용자 자동 생성 기능이 제거되어, 존재하지 않는 사용자에 대해 422 에러를 반환합니다.
 
-**언제 사용해야 하나요?**
-
-| 시나리오 | 기본 SSO API (`/api/sso/token`) | Custom SSO API (`/api/custom/sso/token`) |
-|---------|--------------------------------|------------------------------------------|
-| 폐쇄형 시스템 (사전 등록 필수) | ❌ 자동 계정 생성되어 부적합 | ✅ 사용자 없으면 404 오류 반환 |
-| 개방형 시스템 (누구나 접근) | ✅ 자동 계정 생성으로 편리 | ❌ 필요 없음 |
-| 에러 핸들링 필요 | ❌ 성공만 반환 | ✅ 명확한 에러 코드 제공 |
-| 배치 처리 필요 | ❌ 없음 | ✅ Batch API 제공 |
-
-**사용 예시 (권장 방식)**:
+**에러 처리 예시**:
 
 ```javascript
 // 누비슨 Backend API
@@ -153,8 +144,8 @@ app.get("/api/sso/token", async (req, res) => {
   const labelStudioEmail = req.query.email;  // "s111_gdh@gmail.com"
 
   try {
-    // ✅ Custom SSO Token Validation API 사용
-    const response = await fetch(`${LABEL_STUDIO_URL}/api/custom/sso/token`, {
+    // Label Studio SSO API 호출
+    const response = await fetch(`${LABEL_STUDIO_URL}/api/sso/token`, {
       method: "POST",
       headers: {
         Authorization: `Token ${LABEL_STUDIO_ADMIN_TOKEN}`,  // ← Admin 토큰 필요
@@ -171,17 +162,13 @@ app.get("/api/sso/token", async (req, res) => {
         return res.status(404).json({
           error: "Label Studio 계정이 없습니다. 관리자에게 문의하세요.",
         });
-      } else if (error.error_code === 'USER_INACTIVE') {
-        return res.status(403).json({
-          error: "계정이 비활성 상태입니다. 관리자에게 문의하세요.",
-        });
       }
 
       throw new Error(`Token generation failed: ${error.error}`);
     }
 
     const tokenData = await response.json();
-    // { token: "eyJ...", expires_in: 600, user: {...} }
+    // { token: "eyJ...", expires_in: 600 }
 
     // JWT 토큰을 쿠키에 설정
     res.cookie("ls_auth_token", tokenData.token, {
@@ -201,45 +188,6 @@ app.get("/api/sso/token", async (req, res) => {
   }
 });
 ```
-
-**배치 토큰 발급 (여러 사용자 동시 처리)**:
-
-```javascript
-// 여러 사용자에게 일괄 토큰 발급
-app.post("/api/sso/batch-token", async (req, res) => {
-  const { emails } = req.body;  // ["s111_user1@gmail.com", "s111_user2@gmail.com"]
-
-  const response = await fetch(`${LABEL_STUDIO_URL}/api/custom/sso/batch-token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Token ${LABEL_STUDIO_ADMIN_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ emails }),
-  });
-
-  const result = await response.json();
-  /*
-  {
-    "total": 2,
-    "success": 1,
-    "failed": 1,
-    "results": {
-      "success": [
-        { "email": "s111_user1@gmail.com", "token": "...", "user": {...} }
-      ],
-      "failed": [
-        { "email": "s111_user2@gmail.com", "error": "User not found", "error_code": "USER_NOT_FOUND" }
-      ]
-    }
-  }
-  */
-
-  res.json(result);
-});
-```
-
-**자세한 문서**: [Custom SSO Token API Guide](./CUSTOM_SSO_TOKEN_API.md)
 
 ### 3. 이메일 변경
 
