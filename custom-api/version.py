@@ -69,7 +69,7 @@ class CustomVersionAPI(APIView):
                 }
 
             # 환경 변수에서 커스텀 버전 정보 가져오기
-            custom_version = os.environ.get('CUSTOM_VERSION', '1.20.0-sso.30')
+            custom_version = os.environ.get('CUSTOM_VERSION', '1.20.0-sso.31')
             release_date = os.environ.get('CUSTOM_RELEASE_DATE', '2025-11-07')
 
             # 커스텀 정보 추가

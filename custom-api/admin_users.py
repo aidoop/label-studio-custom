@@ -33,8 +33,13 @@ class CreateSuperuserAPI(APIView):
         "first_name": "Admin",  (optional)
         "last_name": "User",  (optional)
         "create_token": true,  (optional, defaults to true)
-        "add_to_organization": 1  (optional, organization ID)
+        "add_to_organization": 1  (optional, defaults to creator's active_organization)
     }
+
+    Organization 자동 할당:
+    - add_to_organization이 지정되지 않으면 → 생성자의 active_organization에 자동 추가
+    - 명시적으로 지정하면 → 지정된 organization에 추가
+    - 생성자에게 active_organization이 없으면 → organization 추가 안 됨
 
     Response:
     {
@@ -48,7 +53,7 @@ class CreateSuperuserAPI(APIView):
             "is_active": true
         },
         "token": "abc123...",  (if create_token=true)
-        "organization": {  (if add_to_organization is provided)
+        "organization": {  (if user was added to organization)
             "id": 1,
             "title": "Default Organization"
         }
@@ -87,6 +92,10 @@ class CreateSuperuserAPI(APIView):
             last_name = request.data.get('last_name', '')
             create_token = request.data.get('create_token', True)
             org_id = request.data.get('add_to_organization')
+
+            # Organization ID 기본값 설정: 생성자의 active_organization 사용
+            if org_id is None and request.user.active_organization:
+                org_id = request.user.active_organization.id
 
             # Superuser 생성
             user = User.objects.create_user(

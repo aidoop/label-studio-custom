@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.31] - 2025-11-07
+
+### Changed
+
+#### Admin User Creation - Auto Organization Assignment
+- **목적**: 사용자 생성 시 자동으로 생성자의 organization에 추가
+- **문제 해결**:
+  - 기존: `add_to_organization` 파라미터를 명시하지 않으면 organization 미할당
+  - 결과: active_organization이 null이 되어 로그인 불가
+  - 개선: 생성자의 active_organization을 기본값으로 사용
+- **구현 방식**: CreateSuperuserAPI 수정
+  ```python
+  # custom-api/admin_users.py
+  org_id = request.data.get('add_to_organization')
+
+  # 기본값: 생성자의 active_organization 사용
+  if org_id is None and request.user.active_organization:
+      org_id = request.user.active_organization.id
+  ```
+- **동작 방식**:
+  - `add_to_organization` 미지정 → 생성자의 organization에 자동 추가
+  - `add_to_organization: 5` 지정 → Organization 5에 추가 (명시적 지정 우선)
+  - 생성자가 organization 없음 → 추가 안 됨 (기존 동작 유지)
+- **장점**:
+  - Multi-tenancy 친화적 (같은 팀에 자동 추가)
+  - 로그인 불가 문제 방지
+  - 다른 organization에 추가하려면 명시적 지정 필요 (보안 강화)
+
+### Technical Details
+
+- **파일**: `custom-api/admin_users.py` (CreateSuperuserAPI.post)
+- **Signal 연동**: Organization 추가 시 active_organization 자동 설정 (v1.20.0-sso.27)
+- **하위 호환성**: 명시적으로 지정한 경우 기존 동작 유지
+
 ## [1.20.0-sso.30] - 2025-11-07
 
 ### Added
