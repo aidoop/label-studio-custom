@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.32] - 2025-11-07
+
+### Changed
+
+#### Version API - Release Field Override
+- **목적**: UI에서 커스텀 버전이 표시되도록 `release` 필드 자체를 오버라이드
+- **문제**:
+  - v1.20.0-sso.31에서 `custom_version` 필드만 추가했으나 UI는 `release` 필드를 읽음
+  - 결과: UI 하단에 "v1.20.0"으로 표시 (커스텀 버전 미표시)
+- **해결**:
+  - `/api/version` 응답에서 `release` 필드를 커스텀 버전으로 오버라이드
+  - 원본 버전은 `base_release` 필드에 백업
+- **구현**:
+  ```python
+  # custom-api/version.py
+  base_response['base_release'] = base_response.get('release', '1.20.0')  # 백업
+  base_response['release'] = custom_version  # 오버라이드 (UI에서 사용)
+  base_response['custom_version'] = custom_version  # 추가 필드 (API용)
+  ```
+- **결과**:
+  - UI 하단: "v1.20.0-sso.32" 표시 예상
+  - API 응답: `release`, `custom_version`, `base_release` 모두 포함
+
+### Technical Details
+
+- **파일**: `custom-api/version.py` (CustomVersionAPI.get)
+- **API Response**:
+  ```json
+  {
+    "release": "1.20.0-sso.32",
+    "base_release": "1.20.0",
+    "custom_version": "1.20.0-sso.32",
+    "custom_edition": "Community + SSO Custom"
+  }
+  ```
+- **하위 호환성**: `custom_version` 필드도 유지하여 이전 로직과 호환
+
 ## [1.20.0-sso.31] - 2025-11-07
 
 ### Changed

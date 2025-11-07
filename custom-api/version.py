@@ -69,8 +69,14 @@ class CustomVersionAPI(APIView):
                 }
 
             # 환경 변수에서 커스텀 버전 정보 가져오기
-            custom_version = os.environ.get('CUSTOM_VERSION', '1.20.0-sso.31')
+            custom_version = os.environ.get('CUSTOM_VERSION', '1.20.0-sso.32')
             release_date = os.environ.get('CUSTOM_RELEASE_DATE', '2025-11-07')
+
+            # 원본 버전 백업 (참고용)
+            base_response['base_release'] = base_response.get('release', '1.20.0')
+
+            # release 필드를 커스텀 버전으로 오버라이드 (UI에서 사용)
+            base_response['release'] = custom_version
 
             # 커스텀 정보 추가
             base_response['custom_version'] = custom_version
@@ -124,9 +130,11 @@ class CustomVersionAPI(APIView):
 
         except Exception as e:
             # 에러 발생 시 최소한의 정보라도 반환
+            custom_version = os.environ.get('CUSTOM_VERSION', '1.20.0-sso.32')
             return Response({
-                'custom_version': os.environ.get('CUSTOM_VERSION', '1.20.0-sso.30'),
-                'release': '1.20.0',
+                'release': custom_version,
+                'base_release': '1.20.0',
+                'custom_version': custom_version,
                 'edition': 'Community + SSO Custom',
                 'error': f'Failed to get full version info: {str(e)}'
             }, status=status.HTTP_200_OK)
