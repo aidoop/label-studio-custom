@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.25] - 2025-11-07
+
+### Fixed
+
+#### Custom SSO Token API - DEBUG=False 환경에서 JSON 응답 오류 수정
+- **문제**: `DEBUG=False` 환경에서 404/400 에러 발생 시 HTML 템플릿이 렌더링됨
+  - Custom SSO Token API가 JSON을 반환해야 하는데 Django가 HTML 404 페이지로 변환
+  - 프로덕션 환경(`DEBUG=False`)에서만 발생, 개발 환경에서는 정상 작동
+- **원인**: Django가 404 응답을 가로채서 HTML 템플릿으로 렌더링
+- **수정**: `ValidatedSSOTokenAPI`와 `BatchValidateSSOTokenAPI`에 `renderer_classes = [JSONRenderer]` 추가
+  - 모든 HTTP 상태 코드(200, 400, 404, 500)에서 일관되게 JSON 응답 반환
+- **파일**: `custom-api/sso.py` (lines 15, 80, 200)
+- **테스트**:
+  ```bash
+  # 존재하지 않는 사용자 (404) - 이제 JSON 반환
+  curl -X POST 'http://localhost:8080/api/custom/sso/token' \
+    -H 'Authorization: Token YOUR_TOKEN' \
+    -H 'Content-Type: application/json' \
+    -d '{"email":"nonexistent@example.com"}'
+
+  # 응답: {"success": false, "error": "User not found", "error_code": "USER_NOT_FOUND"}
+  ```
+
 ## [1.20.0-sso.24] - 2025-11-07
 
 ### Changed
