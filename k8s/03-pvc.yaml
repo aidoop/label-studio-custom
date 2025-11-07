@@ -1,0 +1,68 @@
+# ==============================================================================
+# PersistentVolumeClaim - 데이터 영속성 스토리지
+# ==============================================================================
+#
+# AWS EKS에서는 EBS (Elastic Block Store)를 사용합니다.
+#
+# EBS CSI 드라이버가 설치되어 있어야 합니다:
+# https://docs.aws.amazon.com/eks/latest/userguide/ebs-csi.html
+#
+# StorageClass 옵션:
+#   - gp3 (권장): 최신 범용 SSD, 비용 효율적
+#   - gp2: 이전 세대 범용 SSD
+#   - io1/io2: 고성능 IOPS용
+#
+# ==============================================================================
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: label-studio-data
+  namespace: label-studio
+  labels:
+    app: label-studio
+spec:
+  # Access Mode
+  # - ReadWriteOnce: 단일 노드에서만 읽기/쓰기 가능 (EBS 기본)
+  # - ReadWriteMany: 여러 노드에서 읽기/쓰기 가능 (EFS 필요)
+  accessModes:
+    - ReadWriteOnce
+
+  # Storage Class
+  # AWS EKS 기본 StorageClass 사용 (gp3 또는 gp2)
+  # 특정 StorageClass를 사용하려면 주석 해제하고 수정
+  # storageClassName: gp3
+
+  # 스토리지 용량
+  # Label Studio 데이터 (프로젝트, 업로드 파일, annotation 등)
+  # 필요에 따라 용량 조정
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# ==============================================================================
+# StorageClass 정의 (선택사항)
+# ==============================================================================
+#
+# EKS 클러스터에 gp3 StorageClass가 없는 경우 생성
+# 이미 클러스터에 gp3 StorageClass가 있다면 이 섹션은 불필요
+#
+# 확인 방법:
+#   kubectl get storageclass
+#
+# ==============================================================================
+
+# apiVersion: storage.k8s.io/v1
+# kind: StorageClass
+# metadata:
+#   name: gp3
+#   annotations:
+#     storageclass.kubernetes.io/is-default-class: "true"
+# provisioner: ebs.csi.aws.com
+# parameters:
+#   type: gp3
+#   fsType: ext4
+#   encrypted: "true"
+# volumeBindingMode: WaitForFirstConsumer
+# allowVolumeExpansion: true

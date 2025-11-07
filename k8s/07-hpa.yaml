@@ -1,0 +1,67 @@
+# ==============================================================================
+# HorizontalPodAutoscaler - 자동 스케일링
+# ==============================================================================
+#
+# Metrics Server가 설치되어 있어야 합니다:
+# https://docs.aws.amazon.com/eks/latest/userguide/metrics-server.html
+#
+# 설치 방법:
+#   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+#
+# 확인 방법:
+#   kubectl top nodes
+#   kubectl top pods -n label-studio
+#
+# ==============================================================================
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: label-studio
+  namespace: label-studio
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: label-studio
+
+  # 최소/최대 Pod 수
+  minReplicas: 2
+  maxReplicas: 10
+
+  # 스케일링 정책
+  metrics:
+    # CPU 사용률 기반 스케일링
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    # 메모리 사용률 기반 스케일링
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+  # 스케일링 동작 설정
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+      selectPolicy: Max

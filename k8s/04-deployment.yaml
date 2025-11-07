@@ -1,0 +1,201 @@
+# ==============================================================================
+# Deployment - Label Studio 애플리케이션
+# ==============================================================================
+#
+# Label Studio Custom Image (SSO 통합)
+# Image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.25
+#
+# ==============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: label-studio
+  namespace: label-studio
+  labels:
+    app: label-studio
+    version: 1.20.0-sso.25
+spec:
+  # 복제본 수 (프로덕션 환경에서는 2개 이상 권장)
+  replicas: 2
+
+  # 롤링 업데이트 전략
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  selector:
+    matchLabels:
+      app: label-studio
+
+  template:
+    metadata:
+      labels:
+        app: label-studio
+        version: 1.20.0-sso.25
+    spec:
+      # ===========================================================================
+      # Init Container - 데이터베이스 마이그레이션
+      # ===========================================================================
+      initContainers:
+        - name: migrate
+          image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.25
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              echo "Running database migrations..."
+              label-studio migrate
+              echo "Migrations completed."
+          env:
+            # ConfigMap에서 환경변수 로드
+            - name: DJANGO_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: label-studio-config
+                  key: DJANGO_DB
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: label-studio-config
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: label-studio-config
+                  key: POSTGRES_PORT
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: label-studio-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: label-studio-config
+                  key: POSTGRES_USER
+
+            # Secret에서 비밀번호 로드
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: label-studio-secret
+                  key: postgres-password
+
+            # Django Secret Key
+            - name: DJANGO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: label-studio-secret
+                  key: django-secret-key
+
+      # ===========================================================================
+      # Main Container - Label Studio
+      # ===========================================================================
+      containers:
+        - name: label-studio
+          image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.25
+          imagePullPolicy: IfNotPresent
+
+          # 컨테이너 포트
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          # 환경변수 - ConfigMap에서 로드
+          envFrom:
+            - configMapRef:
+                name: label-studio-config
+
+          # 환경변수 - Secret에서 로드
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: label-studio-secret
+                  key: postgres-password
+            - name: DJANGO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: label-studio-secret
+                  key: django-secret-key
+
+          # 볼륨 마운트
+          volumeMounts:
+            - name: data
+              mountPath: /label-studio/data
+
+          # 리소스 제한 및 요청
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+
+          # Liveness Probe - 컨테이너가 살아있는지 확인
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          # Readiness Probe - 트래픽을 받을 준비가 되었는지 확인
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Startup Probe - 초기 시작 시간이 오래 걸리는 경우
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+
+      # ===========================================================================
+      # 볼륨
+      # ===========================================================================
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: label-studio-data
+
+      # ===========================================================================
+      # Pod 스케줄링 설정 (선택사항)
+      # ===========================================================================
+
+      # Pod Anti-Affinity - 여러 노드에 분산 배치 (고가용성)
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - label-studio
+                topologyKey: kubernetes.io/hostname
+
+      # 보안 컨텍스트
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+        runAsNonRoot: true

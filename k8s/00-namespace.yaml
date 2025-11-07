@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: label-studio
+  labels:
+    name: label-studio
+    app: label-studio

@@ -1,0 +1,28 @@
+# ==============================================================================
+# Deployment Patch - Staging
+# ==============================================================================
+#
+# 스테이징 환경에 맞게 Deployment 설정을 오버라이드합니다.
+#
+# ==============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: label-studio
+spec:
+  # 스테이징: 최소 2개 복제본
+  replicas: 2
+
+  template:
+    spec:
+      containers:
+        - name: label-studio
+          # 스테이징: 기본 리소스 할당
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"

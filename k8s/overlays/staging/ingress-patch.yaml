@@ -1,0 +1,30 @@
+# ==============================================================================
+# Ingress Patch - Staging
+# ==============================================================================
+#
+# 스테이징 환경용 도메인 설정
+#
+# ==============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: label-studio
+  annotations:
+    # 스테이징 환경용 ACM 인증서 ARN
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:ACCOUNT-ID:certificate/STAGING-CERTIFICATE-ID
+spec:
+  rules:
+    - host: label-staging.hatiolab.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: label-studio
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - label-staging.hatiolab.com

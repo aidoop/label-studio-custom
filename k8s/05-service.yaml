@@ -1,0 +1,32 @@
+# ==============================================================================
+# Service - Label Studio 내부 서비스
+# ==============================================================================
+#
+# ClusterIP 타입: 클러스터 내부에서만 접근 가능
+# Ingress를 통해 외부에서 접근
+#
+# ==============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: label-studio
+  namespace: label-studio
+  labels:
+    app: label-studio
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: label-studio
+
+  # Session Affinity - 동일한 클라이언트를 동일한 Pod으로 라우팅
+  # SSO 세션 유지를 위해 권장
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3시간

@@ -1,0 +1,117 @@
+# ==============================================================================
+# ConfigMap - 환경변수 설정
+# ==============================================================================
+#
+# 사용 전 아래 값들을 실제 환경에 맞게 변경해야 합니다:
+# 1. POSTGRES_HOST: Aurora PostgreSQL 엔드포인트
+# 2. POSTGRES_DB: 데이터베이스 이름
+# 3. POSTGRES_USER: 데이터베이스 사용자명
+# 4. LABEL_STUDIO_HOST: Label Studio 호스트 URL (https://label.hatiolab.com)
+#
+# ==============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: label-studio-config
+  namespace: label-studio
+data:
+  # ===========================================================================
+  # 데이터베이스 설정 (AWS Aurora PostgreSQL)
+  # ===========================================================================
+
+  # 데이터베이스 타입: 'default' (PostgreSQL)
+  DJANGO_DB: "default"
+
+  # Aurora PostgreSQL 엔드포인트
+  # 예시: mydb.cluster-xxxxx.ap-northeast-2.rds.amazonaws.com
+  POSTGRES_HOST: "your-aurora-endpoint.rds.amazonaws.com"
+
+  # PostgreSQL 포트
+  POSTGRES_PORT: "5432"
+
+  # 데이터베이스 이름
+  POSTGRES_DB: "labelstudio"
+
+  # 데이터베이스 사용자명
+  POSTGRES_USER: "postgres"
+
+  # ===========================================================================
+  # Django 설정
+  # ===========================================================================
+
+  # 디버그 모드 (프로덕션에서는 반드시 false)
+  DEBUG: "false"
+
+  # 로그 레벨 (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  LOG_LEVEL: "INFO"
+
+  # ===========================================================================
+  # SSO 설정 (label-studio-sso)
+  # ===========================================================================
+
+  # JWT 토큰에서 사용자 ID claim 이름
+  JWT_SSO_NATIVE_USER_ID_CLAIM: "user_id"
+
+  # JWT 토큰 전달용 쿠키 이름 (권장 방식)
+  JWT_SSO_COOKIE_NAME: "ls_auth_token"
+
+  # JWT 토큰 전달용 URL 파라미터 이름 (폴백)
+  JWT_SSO_TOKEN_PARAM: "token"
+
+  # 쿠키 경로 설정
+  JWT_SSO_COOKIE_PATH: "/"
+
+  # SSO 토큰 만료 시간 (초) - 기본 10분
+  SSO_TOKEN_EXPIRY: "600"
+
+  # ===========================================================================
+  # Sentry 설정 (에러 추적) - 선택사항
+  # ===========================================================================
+
+  # Sentry DSN (비워두면 비활성화)
+  SENTRY_DSN: ""
+  FRONTEND_SENTRY_DSN: ""
+
+  # Sentry 환경 설정
+  SENTRY_ENVIRONMENT: "production"
+  FRONTEND_SENTRY_ENVIRONMENT: "production"
+
+  # ===========================================================================
+  # Label Studio 일반 설정
+  # ===========================================================================
+
+  # 애플리케이션 호스트 URL
+  # 실제 도메인으로 변경하세요
+  LABEL_STUDIO_HOST: "https://label.hatiolab.com"
+
+  # ===========================================================================
+  # 서브도메인 기반 쿠키 공유 설정 (SSO 사용 시 필요)
+  # ===========================================================================
+
+  # 쿠키 도메인 (서브도메인 간 세션 공유)
+  # 예: .hatiolab.com
+  # SESSION_COOKIE_DOMAIN: ".hatiolab.com"
+  # CSRF_COOKIE_DOMAIN: ".hatiolab.com"
+
+  # ===========================================================================
+  # iframe 임베딩 보안 헤더 설정
+  # ===========================================================================
+
+  # CSP frame-ancestors 설정 (간편 모드, 권장)
+  # 예: "'self' https://console.hatiolab.com"
+  # CSP_FRAME_ANCESTORS: "'self' https://console.hatiolab.com"
+
+  # X-Frame-Options 설정 (구형 브라우저용)
+  # 옵션: DENY, SAMEORIGIN
+  # X_FRAME_OPTIONS: "SAMEORIGIN"
+
+  # ===========================================================================
+  # 기타 설정
+  # ===========================================================================
+
+  # Feature flags 오프라인 모드
+  FEATURE_FLAGS_OFFLINE: "true"
+
+  # 스토리지 영속성
+  STORAGE_PERSISTENCE: "true"

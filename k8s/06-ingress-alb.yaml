@@ -1,0 +1,83 @@
+# ==============================================================================
+# Ingress - AWS Application Load Balancer (권장)
+# ==============================================================================
+#
+# AWS Load Balancer Controller 필요:
+# https://docs.aws.amazon.com/eks/latest/userguide/aws-load-balancer-controller.html
+#
+# 설치 방법:
+#   helm repo add eks https://aws.github.io/eks-charts
+#   helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+#     -n kube-system \
+#     --set clusterName=YOUR-CLUSTER-NAME
+#
+# ACM 인증서 사용 (HTTPS):
+#   1. AWS Certificate Manager에서 label.hatiolab.com 인증서 생성
+#   2. 인증서 ARN을 아래 annotation에 입력
+#
+# ==============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: label-studio
+  namespace: label-studio
+  annotations:
+    # AWS Load Balancer Controller 설정
+    kubernetes.io/ingress.class: alb
+
+    # ALB 스킴 (internet-facing: 외부 접근 가능)
+    alb.ingress.kubernetes.io/scheme: internet-facing
+
+    # ALB 타입 (ip: Pod IP로 직접 라우팅)
+    alb.ingress.kubernetes.io/target-type: ip
+
+    # HTTPS 리스너 설정
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+
+    # HTTP to HTTPS 리다이렉트
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+
+    # ACM 인증서 ARN (실제 ARN으로 변경 필요)
+    # AWS Certificate Manager에서 label.hatiolab.com 인증서를 생성하고 ARN을 입력하세요
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:ACCOUNT-ID:certificate/CERTIFICATE-ID
+
+    # 헬스체크 설정
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '10'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
+
+    # 타임아웃 설정 (SSO 세션 유지)
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3600
+
+    # Sticky Session (세션 어피니티)
+    alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=10800
+
+    # 보안 그룹 설정 (선택사항)
+    # alb.ingress.kubernetes.io/security-groups: sg-xxxxx
+
+    # 서브넷 설정 (선택사항 - 퍼블릭 서브넷 지정)
+    # alb.ingress.kubernetes.io/subnets: subnet-xxxxx,subnet-yyyyy
+
+    # ALB 태그 (선택사항)
+    alb.ingress.kubernetes.io/tags: Environment=production,Application=label-studio
+
+spec:
+  rules:
+    - host: label.hatiolab.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: label-studio
+                port:
+                  number: 8080
+
+  # TLS 설정 (ACM 인증서 사용 시 자동 처리됨)
+  tls:
+    - hosts:
+        - label.hatiolab.com

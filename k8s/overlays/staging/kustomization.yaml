@@ -1,0 +1,37 @@
+# ==============================================================================
+# Kustomization - Staging 환경
+# ==============================================================================
+#
+# 배포:
+#   kubectl apply -k k8s/overlays/staging
+#
+# ==============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base 참조
+bases:
+  - ../../
+
+# Namespace 오버라이드
+namespace: label-studio-staging
+
+# 공통 레이블 추가
+commonLabels:
+  environment: staging
+
+# 리소스 패치
+patchesStrategicMerge:
+  - deployment-patch.yaml
+  - ingress-patch.yaml
+
+# ConfigMap 패치
+configMapGenerator:
+  - name: label-studio-config
+    behavior: merge
+    literals:
+      - DEBUG=false
+      - LOG_LEVEL=DEBUG
+      - SENTRY_ENVIRONMENT=staging
+      - LABEL_STUDIO_HOST=https://label-staging.hatiolab.com

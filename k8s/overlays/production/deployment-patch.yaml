@@ -1,0 +1,28 @@
+# ==============================================================================
+# Deployment Patch - Production
+# ==============================================================================
+#
+# 프로덕션 환경에 맞게 Deployment 설정을 오버라이드합니다.
+#
+# ==============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: label-studio
+spec:
+  # 프로덕션: 최소 3개 복제본
+  replicas: 3
+
+  template:
+    spec:
+      containers:
+        - name: label-studio
+          # 프로덕션: 더 높은 리소스 할당
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"

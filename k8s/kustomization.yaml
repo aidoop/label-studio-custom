@@ -1,0 +1,51 @@
+# ==============================================================================
+# Kustomization - 기본 배포 구성
+# ==============================================================================
+#
+# Kustomize를 사용한 배포:
+#   kubectl apply -k k8s/
+#
+# 특정 환경 배포:
+#   kubectl apply -k k8s/overlays/production
+#   kubectl apply -k k8s/overlays/staging
+#
+# ==============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace
+namespace: label-studio
+
+# 공통 레이블
+commonLabels:
+  app: label-studio
+  managed-by: kustomize
+
+# 리소스 파일
+resources:
+  - 00-namespace.yaml
+  - 01-secret.yaml
+  - 02-configmap.yaml
+  - 03-pvc.yaml
+  - 04-deployment.yaml
+  - 05-service.yaml
+  - 06-ingress-alb.yaml  # 또는 06-ingress-nginx.yaml
+  - 07-hpa.yaml
+
+# 이미지 설정
+images:
+  - name: ghcr.io/aidoop/label-studio-custom
+    newTag: 1.20.0-sso.25
+
+# ConfigMap Generator (환경변수를 파일에서 로드하는 경우)
+# configMapGenerator:
+#   - name: label-studio-config
+#     envs:
+#       - .env
+
+# Secret Generator (민감한 정보를 파일에서 로드하는 경우)
+# secretGenerator:
+#   - name: label-studio-secret
+#     envs:
+#       - .env.secret
