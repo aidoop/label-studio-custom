@@ -73,7 +73,7 @@ Label Studio에서 사용하는 주요 쿠키:
 ```yaml
 services:
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.23
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
     environment:
       # ============================================================
       # HTTPS 환경 필수 설정
@@ -182,7 +182,7 @@ version: '3.8'
 
 services:
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.23
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
     container_name: label-studio-app
     restart: unless-stopped
 
@@ -539,4 +539,4 @@ docker exec label-studio-app cat /label-studio/data/.secret_key
 ---
 
 **마지막 업데이트**: 2025-11-07
-**버전**: v1.20.0-sso.23
+**버전**: v1.20.0-sso.32

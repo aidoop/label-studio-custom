@@ -119,7 +119,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.26
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
 
     depends_on:
       - postgres
@@ -769,16 +769,16 @@ docker compose -f docker-compose.test.yml exec labelstudio \
 
 ```bash
 # 이미지 빌드
-docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.11 .
+docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32 .
 
 # GitHub Container Registry 로그인
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # 이미지 푸시
-docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.11
+docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
 
 # latest 태그 추가
-docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.11 \
+docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32 \
            ghcr.io/aidoop/label-studio-custom:latest
 docker push ghcr.io/aidoop/label-studio-custom:latest
 ```

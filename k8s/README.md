@@ -356,7 +356,7 @@ kubectl describe pod -n label-studio POD_NAME
 #    - 보안 그룹 확인: EKS 노드에서 Aurora로 5432 포트 허용
 #    - 엔드포인트 확인: ConfigMap의 POSTGRES_HOST
 # 2. 이미지 Pull 실패
-#    - 이미지 이름 확인: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.25
+#    - 이미지 이름 확인: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
 # 3. Secret/ConfigMap 오류
 #    - base64 인코딩 확인
 ```

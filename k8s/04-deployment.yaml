@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # Label Studio Custom Image (SSO 통합)
-# Image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.25
+# Image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
 #
 # ==============================================================================
 
@@ -14,7 +14,7 @@ metadata:
   namespace: label-studio
   labels:
     app: label-studio
-    version: 1.20.0-sso.25
+    version: 1.20.0-sso.32
 spec:
   # 복제본 수 (프로덕션 환경에서는 2개 이상 권장)
   replicas: 2
@@ -34,14 +34,14 @@ spec:
     metadata:
       labels:
         app: label-studio
-        version: 1.20.0-sso.25
+        version: 1.20.0-sso.32
     spec:
       # ===========================================================================
       # Init Container - 데이터베이스 마이그레이션
       # ===========================================================================
       initContainers:
         - name: migrate
-          image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.25
+          image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
           imagePullPolicy: IfNotPresent
           command:
             - sh
@@ -97,7 +97,7 @@ spec:
       # ===========================================================================
       containers:
         - name: label-studio
-          image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.25
+          image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
           imagePullPolicy: IfNotPresent
 
           # 컨테이너 포트

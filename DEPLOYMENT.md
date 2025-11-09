@@ -19,7 +19,7 @@ version: "3.8"
 
 services:
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.22
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
 
     environment:
       # ================================================================
@@ -190,7 +190,7 @@ cd /Users/super/Documents/GitHub/label-studio-custom
 docker build -t label-studio-custom:local .
 
 # 특정 버전으로 빌드
-docker build -t label-studio-custom:1.20.0-sso.5 .
+docker build -t label-studio-custom:1.20.0-sso.32 .
 
 # 빌드 확인
 docker images | grep label-studio-custom
@@ -255,13 +255,13 @@ docker build -t label-studio-custom:local .
 
 # 2. GitHub Container Registry 태그 추가
 # 형식: ghcr.io/<github-username>/<image-name>:<version>
-docker tag label-studio-custom:local ghcr.io/aidoop/label-studio-custom:1.20.0-sso.5
+docker tag label-studio-custom:local ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
 
 # 3. latest 태그도 추가
 docker tag label-studio-custom:local ghcr.io/aidoop/label-studio-custom:latest
 
 # 4. 이미지 푸시
-docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.5
+docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
 docker push ghcr.io/aidoop/label-studio-custom:latest
 
 # 5. 푸시 확인
@@ -317,13 +317,13 @@ cd /Users/super/Documents/GitHub/label-studio-custom
 
 # 1. 코드 변경사항 커밋
 git add .
-git commit -m "feat: Release v1.20.0-sso.5"
+git commit -m "feat: Release v1.20.0-sso.32"
 
 # 2. 태그 생성
-git tag v1.20.0-sso.5
+git tag v1.20.0-sso.32
 
 # 3. 태그 푸시
-git push origin v1.20.0-sso.5
+git push origin v1.20.0-sso.32
 
 # → GitHub Actions가 자동으로:
 #    - 이미지 빌드
@@ -337,7 +337,7 @@ git push origin v1.20.0-sso.5
 1. `v*.*.*-sso.*` 태그 감지
 2. Docker 이미지 빌드
 3. GitHub Container Registry에 푸시:
-   - `ghcr.io/aidoop/label-studio-custom:1.20.0-sso.5`
+   - `ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32`
    - `ghcr.io/aidoop/label-studio-custom:latest`
 4. GitHub Release 생성
 
@@ -375,7 +375,7 @@ v<label-studio-version>-sso.<custom-version>
 
 ```bash
 # Public 이미지 pull (최신 버전)
-docker pull ghcr.io/aidoop/label-studio-custom:1.20.0-sso.7
+docker pull ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
 
 # 또는 latest
 docker pull ghcr.io/aidoop/label-studio-custom:latest
@@ -387,7 +387,7 @@ docker pull ghcr.io/aidoop/label-studio-custom:latest
 services:
   labelstudio:
     # 특정 버전 사용 (권장)
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.7
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
 
     # 또는 latest (개발용)
     # image: ghcr.io/aidoop/label-studio-custom:latest
@@ -412,7 +412,7 @@ docker buildx create --use
 # 멀티 플랫폼 빌드 및 푸시
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.5 \
+  -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32 \
   --push \
   .
 ```
@@ -430,8 +430,8 @@ docker buildx build \
 docker login
 
 # 태그 및 푸시
-docker tag label-studio-custom:local heartyoh/label-studio-custom:1.20.0-sso.5
-docker push heartyoh/label-studio-custom:1.20.0-sso.5
+docker tag label-studio-custom:local heartyoh/label-studio-custom:1.20.0-sso.32
+docker push heartyoh/label-studio-custom:1.20.0-sso.32
 ```
 
 ### AWS ECR
@@ -443,8 +443,8 @@ aws ecr get-login-password --region ap-northeast-2 | \
 
 # 태그 및 푸시
 docker tag label-studio-custom:local \
-  <account-id>.dkr.ecr.ap-northeast-2.amazonaws.com/label-studio-custom:1.20.0-sso.5
-docker push <account-id>.dkr.ecr.ap-northeast-2.amazonaws.com/label-studio-custom:1.20.0-sso.5
+  <account-id>.dkr.ecr.ap-northeast-2.amazonaws.com/label-studio-custom:1.20.0-sso.32
+docker push <account-id>.dkr.ecr.ap-northeast-2.amazonaws.com/label-studio-custom:1.20.0-sso.32
 ```
 
 ---
