@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.34] - 2025-11-14
+
+### Added
+
+#### AIV Prefix for Prediction Model Version
+- **목적**: UI에서 AI 예측 기반 annotation과 사용자 직접 annotation을 시각적으로 구별
+- **기능**:
+  - Prediction 조회 시 `model_version` 필드에 "AIV " 프리픽스 자동 추가
+  - 예: `"model_version": "139"` → `"model_version": "AIV 139"`
+  - UI 표시: "139 #1" → "AIV 139 #1"
+- **구현 방식**: Backend Serializer Override
+  ```python
+  # PredictionSerializer.to_representation() 오버라이드
+  def to_representation(self, instance):
+      ret = super().to_representation(instance)
+      if ret.get('model_version'):
+          ret['model_version'] = f"AIV {ret['model_version']}"
+      return ret
+  ```
+- **영향 범위**:
+  - ✅ GET 요청 (조회): API 응답에 "AIV " 프리픽스 추가
+  - ❌ POST/PUT/PATCH (생성/수정): 데이터베이스에는 원본 그대로 저장
+  - ❌ 데이터베이스: 실제 저장된 값은 변경 없음 (display-only)
+- **잠재적 영향**:
+  - Export: JSON/CSV export 시 "AIV " 프리픽스 포함될 수 있음
+  - API 클라이언트: 외부 시스템이 model_version 값을 파싱하는 경우 영향 받을 수 있음
+- **파일**:
+  - `scripts/patch_prediction_serializer.py` (새로 추가)
+  - `Dockerfile` (line 39-41: 패치 스크립트 실행)
+
+### Technical Details
+
+- **패치 적용 시점**: Docker 이미지 빌드 시 자동 실행
+- **패치 대상**: `/label-studio/label_studio/tasks/serializers.py`
+- **패치 방법**: `PredictionSerializer` 클래스에 `to_representation()` 메서드 추가
+- **중복 패치 방지**: "AIV prefix patch" 주석으로 이미 패치된 경우 건너뛰기
+
+## [1.20.0-sso.33] - 2025-11-13
+
+### Fixed
+
+#### Media Upload - Array and File Object Handling
+- **문제**: 프론트엔드에서 배열 형식 및 File 객체로 전송된 media가 처리되지 않음
+- **해결**: 배열 및 File 객체 형식 모두 처리하도록 수정
+- **파일**: `custom-api/media.py`
+
 ## [1.20.0-sso.32] - 2025-11-07
 
 ### Changed

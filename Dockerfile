@@ -5,7 +5,7 @@ FROM heartexlabs/label-studio:1.20.0
 # 메타데이터
 LABEL maintainer="heartyoh@hatiolab.com"
 LABEL description="Label Studio 1.20.0 with label-studio-sso integration"
-LABEL version="1.20.0-sso.27"
+LABEL version="1.20.0-sso.34"
 
 # 작업 디렉토리 설정
 WORKDIR /label-studio
@@ -35,6 +35,10 @@ COPY custom-templates/base.html /label-studio/label_studio/templates/base.html
 # Label Studio의 실제 webhooks/utils.py에 completed_by_info 추가 로직 삽입
 COPY scripts/patch_webhooks.py /tmp/patch_webhooks.py
 RUN python3 /tmp/patch_webhooks.py
+
+# AIV prefix 패치 적용 - 백엔드 serializer에서 model_version에 프리픽스 추가
+COPY scripts/patch_prediction_serializer.py /tmp/patch_prediction_serializer.py
+RUN python3 /tmp/patch_prediction_serializer.py
 
 # 정적 파일 수집
 # Label Studio의 JavaScript, CSS 등 정적 파일을 수집하여 /label-studio/label_studio/core/ 디렉토리로 복사
