@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.35] - 2025-11-14
+
+### Fixed
+
+#### User Deletion API
+- **문제**: 사용자 삭제 시 "Method DELETE not allowed" 오류 발생
+- **원인**: v1.20.0-sso.19에서 추가된 `custom-api/users.py`가 GET, PATCH만 구현하여 DELETE 메서드가 누락됨
+- **수정**:
+  - `@api_view` 데코레이터에 DELETE 추가
+  - DELETE 메서드 구현:
+    - 관리자 전용 권한 (admin-only)
+    - 자기 자신 삭제 방지 (self-deletion prevention)
+    - HTTP 204 No Content 응답
+- **영향**: 사용자 삭제 기능 복원
+- **파일**: `custom-api/users.py` (lines 36, 96-115)
+
 ## [1.20.0-sso.34] - 2025-11-14
 
 ### Added

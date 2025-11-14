@@ -33,11 +33,11 @@ class UserUpdateSerializer(BaseUserSerializer):
         read_only_fields = ()  # Allow all fields to be updated
 
 
-@api_view(['GET', 'PATCH'])
+@api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def user_detail(request, pk):
     """
-    Get or update user details.
+    Get, update, or delete user details.
 
     GET /api/users/{id}/
         Returns user details
@@ -45,9 +45,12 @@ def user_detail(request, pk):
     PATCH /api/users/{id}/
         Updates user details (email modification allowed)
 
+    DELETE /api/users/{id}/
+        Deletes user (mimics Label Studio's default behavior)
+
     Permissions:
-        - Admins can access/update any user
-        - Users can only access/update themselves
+        - Admins can access/update/delete any user
+        - Users can only access/update themselves (cannot delete)
     """
     try:
         user = User.objects.get(pk=pk)
@@ -89,6 +92,19 @@ def user_detail(request, pk):
             return Response(serializer.data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        # Delete user (mimics Label Studio's default ViewSet.destroy() behavior)
+        # Permission check: only admins can delete users
+        if not request.user.is_staff:
+            return Response(
+                {'detail': 'You do not have permission to perform this action.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Perform deletion (same as ModelViewSet.destroy())
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['GET'])
