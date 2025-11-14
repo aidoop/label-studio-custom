@@ -258,7 +258,7 @@ version: '3.8'
 
 services:
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
     environment:
       # iframe 보안 헤더 설정
       CSP_FRAME_ANCESTORS: "'self' https://console-dev.nubison.io https://console.nubison.io"

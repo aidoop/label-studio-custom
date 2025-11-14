@@ -111,6 +111,7 @@
   - v1.20.0-sso.22 (동적 날짜 필드 필터링 추가)
   - v1.20.0-sso.23 (Custom SSO Token API, SSO 로그인 페이지 추가)
   - v1.20.0-sso.34 (AIV prefix 통합)
+  - v1.20.0-sso.36 (User deletion API 수정)
 - **문서**: [Custom Export API Guide](docs/CUSTOM_EXPORT_API_GUIDE.md)
 
 ### 9. SSO 전용 로그인 페이지
@@ -138,7 +139,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.34
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
 
     depends_on:
       - postgres
@@ -788,7 +789,7 @@ docker compose -f docker-compose.test.yml exec labelstudio \
 
 ```bash
 # 이미지 빌드
-docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32 .
+docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36 .
 
 # GitHub Container Registry 로그인
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin

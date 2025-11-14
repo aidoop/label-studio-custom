@@ -7,21 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.20.0-sso.35] - 2025-11-14
+## [1.20.0-sso.36] - 2025-11-14
 
 ### Fixed
 
-#### User Deletion API
-- **문제**: 사용자 삭제 시 "Method DELETE not allowed" 오류 발생
-- **원인**: v1.20.0-sso.19에서 추가된 `custom-api/users.py`가 GET, PATCH만 구현하여 DELETE 메서드가 누락됨
-- **수정**:
-  - `@api_view` 데코레이터에 DELETE 추가
-  - DELETE 메서드 구현:
-    - 관리자 전용 권한 (admin-only)
-    - 자기 자신 삭제 방지 (self-deletion prevention)
-    - HTTP 204 No Content 응답
-- **영향**: 사용자 삭제 기능 복원
-- **파일**: `custom-api/users.py` (lines 36, 96-115)
+#### User Deletion API - Proper Implementation
+- **배경**: v1.20.0-sso.19에서 커스텀 User API 추가 시 GET, PATCH만 구현하여 DELETE 누락
+- **문제**: URL 충돌로 인한 사용자 삭제 불가
+  - 커스텀 API: `/api/users/{pk}/` (GET, PATCH만 허용)
+  - Label Studio 기본 API: `/api/users/{pk}/` (모든 메서드)
+  - Django URL 매칭: 커스텀 API가 먼저 매칭 → DELETE 요청 시 405 반환
+  - 기본 API로 fallback 안 됨 (이미 URL 매칭됨)
+- **해결**:
+  - 커스텀 API에 DELETE 메서드 추가
+  - Label Studio 기본 동작 모방 (`ModelViewSet.destroy()`)
+  - 관리자 전용 권한 체크
+  - HTTP 204 No Content 응답
+- **구현** (`custom-api/users.py`):
+  ```python
+  @api_view(['GET', 'PATCH', 'DELETE'])  # DELETE 추가
+  def user_detail(request, pk):
+      # ...
+      elif request.method == 'DELETE':
+          if not request.user.is_staff:
+              return Response({'detail': 'Permission denied'}, status=403)
+          user.delete()
+          return Response(status=204)
+  ```
+- **테스트 결과**:
+  - ✅ GET: 사용자 조회 정상
+  - ✅ PATCH: 이름/이메일 수정 정상
+  - ✅ DELETE: 사용자 삭제 정상 (HTTP 204)
+  - ✅ 권한: 관리자만 삭제 가능
 
 ## [1.20.0-sso.34] - 2025-11-14
 
