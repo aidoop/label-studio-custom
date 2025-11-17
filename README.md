@@ -92,8 +92,9 @@
   - v1.20.0-sso.11 (오리지널 Serializer 적용)
   - v1.20.0-sso.22 (동적 날짜 필드 필터링 추가)
   - v1.20.0-sso.23 (Custom SSO Token API, SSO 로그인 페이지 추가)
-  - v1.20.0-sso.34 (최초)
+  - v1.20.0-sso.34 (AIV Prefix 추가)
   - v1.20.0-sso.36 (User deletion API 수정)
+  - v1.20.0-sso.37 (AIV Prefix 제거, 테스트 수정)
 - **문서**: [Custom Export API Guide](docs/CUSTOM_EXPORT_API_GUIDE.md)
 
 ### 9. SSO 전용 로그인 페이지

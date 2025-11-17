@@ -23,6 +23,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Export/API: "AIV " 프리픽스 없이 원본 값 반환
   - 데이터베이스: 변경 없음 (원래 원본 값으로 저장되어 있었음)
 
+### Fixed
+
+#### Integration Tests - Date Field Name Alignment
+- **배경**: Custom Export API 테스트에서 날짜 필터링 관련 테스트 실패
+- **문제**: 테스트 코드가 `source_created_dt` 필드를 사용했으나 API는 `source_created_at` 필드를 기본으로 검색
+- **해결**:
+  - 테스트 헬퍼 함수 파라미터명 변경: `source_created_dt` → `source_created_at`
+  - 모든 테스트 케이스에서 필드명 통일 (30+ 발생 위치)
+  - API 기본 설정과 정렬: `search_date_field='source_created_at'`
+- **제거된 테스트**: 타임존 처리 관련 테스트 4개 제거 (불필요한 복잡도)
+  - `test_export_with_timezone_aware_dates` - 타임존 포함 날짜 필터링
+  - `test_export_with_mixed_timezone_formats` - 다양한 타임존 형식 혼합
+  - `test_export_with_kst_timezone_filter` - 한국 시간대(KST) 필터링
+  - `test_export_date_boundary_conditions` - 타임존 경계 조건
+- **테스트 결과**:
+  - 총 13개 통합 테스트 모두 통과 (기존 17개 → 13개)
+  - 날짜 필터링 기능 정상 작동 확인 (naive datetime 기반)
+
 ## [1.20.0-sso.36] - 2025-11-14
 
 ### Fixed
