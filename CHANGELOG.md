@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.37] - 2025-11-17
+
+### Removed
+
+#### AIV Prefix for Prediction Model Version
+- **목적**: prediction `model_version`에 "AIV " 프리픽스를 추가하던 기능 제거
+- **사유**: 불필요한 커스터마이징으로 판단, Label Studio 기본 동작으로 복귀
+- **변경 사항**:
+  - `scripts/patch_prediction_serializer.py` 삭제
+  - `Dockerfile`에서 AIV 패치 적용 코드 제거 (기존 라인 39-41)
+  - `model_version` 필드는 이제 원본 값 그대로 반환 (예: "139")
+- **영향**:
+  - UI 표시: "AIV 139 #1" → "139 #1"로 변경됨
+  - Export/API: "AIV " 프리픽스 없이 원본 값 반환
+  - 데이터베이스: 변경 없음 (원래 원본 값으로 저장되어 있었음)
+
 ## [1.20.0-sso.36] - 2025-11-14
 
 ### Fixed

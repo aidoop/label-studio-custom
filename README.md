@@ -66,29 +66,11 @@
 - **목적**: 외부 MLOps 시스템의 모델 버전 ID를 Project에 저장하여 성능 계산 시 참조
 - **효과**: PATCH `/api/projects/{id}/` 요청 시 어떤 model_version 값도 자유롭게 저장 가능
 
-### 7. AIV Prefix for Prediction Model Version (v1.20.0-sso.34)
-
-- **목적**: UI에서 AI 예측 기반 annotation과 사용자 직접 annotation을 시각적으로 구별
-- **기능**:
-  - Prediction 조회 시 `model_version` 필드에 "AIV " 프리픽스 자동 추가
-  - 예: `"model_version": "139"` → `"model_version": "AIV 139"`
-  - UI 표시: "139 #1" → "AIV 139 #1"
-- **구현 방식**: Backend Serializer Override
-  - `PredictionSerializer.to_representation()` 메서드 오버라이드
-  - Docker 이미지 빌드 시 자동 패치 적용
-- **영향 범위**:
-  - ✅ GET 요청 (조회): API 응답에 "AIV " 프리픽스 추가
-  - ❌ 데이터베이스: 실제 저장된 값은 변경 없음 (display-only)
-- **잠재적 영향**:
-  - Export: JSON/CSV export 시 "AIV " 프리픽스 포함될 수 있음
-  - API 클라이언트: 외부 시스템이 model_version 값을 파싱하는 경우 영향 받을 수 있음
-- **파일**: `scripts/patch_prediction_serializer.py`
-
-### 8. Custom Export API (MLOps 통합)
+### 7. Custom Export API (MLOps 통합)
 
 - **목적**: MLOps 시스템의 모델 학습 및 성능 계산을 위한 필터링된 Task Export
 - **구현 방식**: Label Studio 1.20.0 오리지널 Serializer 사용
-  - `PredictionSerializer` - 표준 prediction 형식 (AIV prefix 포함)
+  - `PredictionSerializer` - 표준 prediction 형식
   - `AnnotationSerializer` - 표준 annotation 형식
   - `completed_by_info` enrichment 추가 (MLOps 커스텀)
 - **주요 기능**:
@@ -110,7 +92,7 @@
   - v1.20.0-sso.11 (오리지널 Serializer 적용)
   - v1.20.0-sso.22 (동적 날짜 필드 필터링 추가)
   - v1.20.0-sso.23 (Custom SSO Token API, SSO 로그인 페이지 추가)
-  - v1.20.0-sso.34 (AIV prefix 통합)
+  - v1.20.0-sso.34 (최초)
   - v1.20.0-sso.36 (User deletion API 수정)
 - **문서**: [Custom Export API Guide](docs/CUSTOM_EXPORT_API_GUIDE.md)
 
