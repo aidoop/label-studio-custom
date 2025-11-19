@@ -97,6 +97,14 @@ class CustomExportRequestSerializer(serializers.Serializer):
         help_text="페이지당 Task 개수 (최대 10000, 없으면 전체 반환)"
     )
 
+    # 선택 필드 - 응답 타입
+    response_type = serializers.ChoiceField(
+        choices=['data', 'count'],
+        required=False,
+        default='data',
+        help_text="응답 타입 - 'data': Task 데이터 반환 (기본값), 'count': 건수만 반환"
+    )
+
     def validate(self, data):
         """
         필드 간 유효성 검증

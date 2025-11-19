@@ -116,11 +116,17 @@ class CustomExportAPITest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_export_all_tasks(self):
-        """전체 Task Export (페이징 없음)"""
+        """전체 Task Export (페이징 없음) - 검수자 annotation 포함"""
         # Task 3개 생성
         task1 = self._create_task({'text': 'Task 1'})
         task2 = self._create_task({'text': 'Task 2'})
         task3 = self._create_task({'text': 'Task 3'})
+
+        # 검수자 annotation 추가 (필수)
+        result = [{'type': 'choices', 'value': {'choices': ['Positive']}}]
+        self._create_annotation(task1, self.admin_user, result)
+        self._create_annotation(task2, self.admin_user, result)
+        self._create_annotation(task3, self.admin_user, result)
 
         response = self.client.post(self.export_url, {'project_id': self.project.id})
 
@@ -146,6 +152,12 @@ class CustomExportAPITest(TestCase):
             source_created_at='2025-01-25 10:00:00'
         )
 
+        # 검수자 annotation 추가 (필수)
+        result = [{'type': 'choices', 'value': {'choices': ['Positive']}}]
+        self._create_annotation(task1, self.admin_user, result)
+        self._create_annotation(task2, self.admin_user, result)
+        self._create_annotation(task3, self.admin_user, result)
+
         # Debug: Check task data
         print(f"\nDEBUG task1.data: {task1.data}")
         print(f"DEBUG task2.data: {task2.data}")
@@ -170,6 +182,12 @@ class CustomExportAPITest(TestCase):
         task1 = self._create_task({'text': 'Task 1'})
         task2 = self._create_task({'text': 'Task 2'})
         task3 = self._create_task({'text': 'Task 3'})
+
+        # 검수자 annotation 추가 (필수)
+        result = [{'type': 'choices', 'value': {'choices': ['Positive']}}]
+        self._create_annotation(task1, self.admin_user, result)
+        self._create_annotation(task2, self.admin_user, result)
+        self._create_annotation(task3, self.admin_user, result)
 
         # Prediction 생성 (서로 다른 model_version)
         self._create_prediction(task1, 'bert-v1', [{'type': 'choices', 'value': {'choices': ['Positive']}}])
@@ -219,9 +237,11 @@ class CustomExportAPITest(TestCase):
 
     def test_export_with_pagination(self):
         """페이징"""
-        # Task 5개 생성
+        # Task 5개 생성 + 검수자 annotation 추가
+        result = [{'type': 'choices', 'value': {'choices': ['Positive']}}]
         for i in range(1, 6):
-            self._create_task({'text': f'Task {i}'})
+            task = self._create_task({'text': f'Task {i}'})
+            self._create_annotation(task, self.admin_user, result)
 
         # 페이지 1 (2개씩)
         response = self.client.post(self.export_url, {
@@ -378,9 +398,14 @@ class CustomExportAPITest(TestCase):
 
     def test_empty_result(self):
         """결과 없음 처리"""
-        # Task는 있지만 필터에 맞지 않음
-        self._create_task({'text': 'Task 1'})
+        # Task는 있지만 annotation이 없거나 필터에 맞지 않음
+        task1 = self._create_task({'text': 'Task 1'})
 
+        # Annotation 추가
+        result = [{'type': 'choices', 'value': {'choices': ['Positive']}}]
+        self._create_annotation(task1, self.admin_user, result)
+
+        # 존재하지 않는 모델 버전으로 필터링
         response = self.client.post(self.export_url, {
             'project_id': self.project.id,
             'model_version': 'non-existent-model'
@@ -403,6 +428,11 @@ class CustomExportAPITest(TestCase):
             source_created_at='2025-01-15 14:00:00'
         )
 
+        # Annotation 추가 (검수자 annotation 필수)
+        result = [{'type': 'choices', 'value': {'choices': ['Positive']}}]
+        self._create_annotation(task1, self.admin_user, result)
+        self._create_annotation(task2, self.admin_user, result)
+
         # 타임존 없는 필터 (UTC로 간주)
         response = self.client.post(self.export_url, {
             'project_id': self.project.id,
@@ -414,6 +444,182 @@ class CustomExportAPITest(TestCase):
         data = response.json()
         self.assertEqual(data['total'], 1)
         self.assertEqual(data['tasks'][0]['data']['text'], 'Task 2')
+
+    def test_export_response_type_count(self):
+        """response_type='count'로 건수만 조회"""
+        # Task 3개 생성 (검수자 annotation 포함)
+        result = [{'type': 'choices', 'value': {'choices': ['Positive']}}]
+        for i in range(1, 4):
+            task = self._create_task({'text': f'Task {i}'})
+            self._create_annotation(task, self.admin_user, result)
+
+        # response_type='count'로 건수만 조회
+        response = self.client.post(self.export_url, {
+            'project_id': self.project.id,
+            'response_type': 'count'
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['total'], 3)
+        self.assertNotIn('tasks', data)  # tasks 필드 없음
+        self.assertNotIn('page', data)  # 페이징 정보 없음
+
+    def test_export_only_superuser_annotations(self):
+        """검수자(superuser)의 annotation만 포함"""
+        # Task 3개 생성
+        task1 = self._create_task({'text': 'Task 1'})
+        task2 = self._create_task({'text': 'Task 2'})
+        task3 = self._create_task({'text': 'Task 3'})
+
+        # Annotation 추가
+        result = [{'type': 'choices', 'value': {'choices': ['Positive']}}]
+        self._create_annotation(task1, self.admin_user, result)  # 검수자
+        self._create_annotation(task2, self.regular_user, result)  # 일반 사용자
+        self._create_annotation(task3, self.admin_user, result)  # 검수자
+
+        # Export (검수자 annotation만 포함되어야 함)
+        response = self.client.post(self.export_url, {
+            'project_id': self.project.id
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['total'], 2)  # task1, task3만 (일반 사용자 task 제외)
+        task_texts = [t['data']['text'] for t in data['tasks']]
+        self.assertIn('Task 1', task_texts)
+        self.assertIn('Task 3', task_texts)
+        self.assertNotIn('Task 2', task_texts)  # 일반 사용자 annotation만 있는 task는 제외
+
+        # Annotation에도 검수자만 포함되어야 함
+        for task_data in data['tasks']:
+            for anno in task_data['annotations']:
+                self.assertTrue(anno['completed_by_info']['is_superuser'])
+
+    def test_export_exclude_cancelled_annotations(self):
+        """was_cancelled=True인 annotation 제외 (임시 저장 제외)"""
+        # Task 3개 생성
+        task1 = self._create_task({'text': 'Task 1'})
+        task2 = self._create_task({'text': 'Task 2'})
+        task3 = self._create_task({'text': 'Task 3'})
+
+        # Annotation 추가
+        result = [{'type': 'choices', 'value': {'choices': ['Positive']}}]
+        anno1 = self._create_annotation(task1, self.admin_user, result)
+        anno1.was_cancelled = False  # 정상 submit
+        anno1.save()
+
+        anno2 = self._create_annotation(task2, self.admin_user, result)
+        anno2.was_cancelled = True  # 임시 저장 (draft)
+        anno2.save()
+
+        anno3 = self._create_annotation(task3, self.admin_user, result)
+        anno3.was_cancelled = False  # 정상 submit
+        anno3.save()
+
+        # Export (was_cancelled=False만 포함되어야 함)
+        response = self.client.post(self.export_url, {
+            'project_id': self.project.id
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['total'], 2)  # task1, task3만 (임시 저장 task 제외)
+        task_texts = [t['data']['text'] for t in data['tasks']]
+        self.assertIn('Task 1', task_texts)
+        self.assertIn('Task 3', task_texts)
+        self.assertNotIn('Task 2', task_texts)  # 임시 저장만 있는 task는 제외
+
+        # Annotation에도 was_cancelled=False만 포함
+        for task_data in data['tasks']:
+            for anno in task_data['annotations']:
+                self.assertFalse(anno['was_cancelled'])
+
+    def test_export_exclude_tasks_without_annotations(self):
+        """annotation이 없는 task 제외"""
+        # Task 3개 생성
+        task1 = self._create_task({'text': 'Task 1'})
+        task2 = self._create_task({'text': 'Task 2'})  # annotation 없음
+        task3 = self._create_task({'text': 'Task 3'})
+
+        # task1, task3에만 annotation 추가
+        result = [{'type': 'choices', 'value': {'choices': ['Positive']}}]
+        self._create_annotation(task1, self.admin_user, result)
+        self._create_annotation(task3, self.admin_user, result)
+
+        # Export (annotation 있는 task만 포함되어야 함)
+        response = self.client.post(self.export_url, {
+            'project_id': self.project.id
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['total'], 2)
+        task_texts = [t['data']['text'] for t in data['tasks']]
+        self.assertIn('Task 1', task_texts)
+        self.assertIn('Task 3', task_texts)
+        self.assertNotIn('Task 2', task_texts)  # annotation 없는 task는 제외
+
+    def test_export_exclude_tasks_with_only_regular_user_annotations(self):
+        """일반 사용자 annotation만 있는 task 제외"""
+        # Task 3개 생성
+        task1 = self._create_task({'text': 'Task 1'})
+        task2 = self._create_task({'text': 'Task 2'})
+        task3 = self._create_task({'text': 'Task 3'})
+
+        # Annotation 추가
+        result = [{'type': 'choices', 'value': {'choices': ['Positive']}}]
+        self._create_annotation(task1, self.admin_user, result)  # 검수자
+        self._create_annotation(task2, self.regular_user, result)  # 일반 사용자만
+        self._create_annotation(task3, self.admin_user, result)  # 검수자
+
+        # Export (검수자 annotation 있는 task만 포함되어야 함)
+        response = self.client.post(self.export_url, {
+            'project_id': self.project.id
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['total'], 2)
+        task_texts = [t['data']['text'] for t in data['tasks']]
+        self.assertIn('Task 1', task_texts)
+        self.assertIn('Task 3', task_texts)
+        self.assertNotIn('Task 2', task_texts)
+
+    def test_export_response_type_count_with_filters(self):
+        """response_type='count' + 필터 조합"""
+        # Task 생성
+        task1 = self._create_task(
+            {'text': 'Task 1'},
+            source_created_at='2025-01-15 10:00:00'
+        )
+        task2 = self._create_task(
+            {'text': 'Task 2'},
+            source_created_at='2025-01-20 10:00:00'
+        )
+        task3 = self._create_task(
+            {'text': 'Task 3'},
+            source_created_at='2025-01-25 10:00:00'
+        )
+
+        # Annotation 추가
+        result = [{'type': 'choices', 'value': {'choices': ['Positive']}}]
+        self._create_annotation(task1, self.admin_user, result)
+        self._create_annotation(task2, self.admin_user, result)
+        self._create_annotation(task3, self.admin_user, result)
+
+        # 날짜 필터 + response_type='count'
+        response = self.client.post(self.export_url, {
+            'project_id': self.project.id,
+            'search_from': '2025-01-16 00:00:00',
+            'search_to': '2025-01-24 23:59:59',
+            'response_type': 'count'
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['total'], 1)  # task2만
+        self.assertNotIn('tasks', data)
 
 
 class ValidatedSSOTokenAPITest(TestCase):

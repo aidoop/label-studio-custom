@@ -46,7 +46,7 @@ class CustomExportAPI(APIView):
 
     def post(self, request):
         """
-        필터링된 Task 목록 Export
+        필터링된 Task 목록 Export 또는 건수 조회
 
         Request Body:
         {
@@ -55,16 +55,31 @@ class CustomExportAPI(APIView):
             "search_to": "2025-01-31 23:59:59",    // 옵션
             "search_date_field": "source_created_at", // 옵션 (기본값: source_created_at)
             "model_version": "bert-v1",            // 옵션
-            "confirm_user_id": 8,                   // 옵션
-            "page": 1,                              // 옵션
-            "page_size": 100                        // 옵션
+            "confirm_user_id": 8,                   // 옵션 (검수자 ID)
+            "page": 1,                              // 옵션 (페이징)
+            "page_size": 100,                       // 옵션 (페이징)
+            "response_type": "data"                 // 옵션 ("data" 또는 "count", 기본값: "data")
         }
 
-        Response:
+        Response (response_type="data"):
         {
             "total": 150,
-            "tasks": [...]
+            "tasks": [...],
+            "page": 1,           // 페이징 사용 시
+            "page_size": 100,    // 페이징 사용 시
+            "total_pages": 2,    // 페이징 사용 시
+            "has_next": true,    // 페이징 사용 시
+            "has_previous": false // 페이징 사용 시
         }
+
+        Response (response_type="count"):
+        {
+            "total": 150
+        }
+
+        중요:
+        - 검수자(is_superuser=True)의 유효한(was_cancelled=False) annotation이 있는 task만 반환
+        - 임시 저장(draft) annotation은 제외됨
         """
         # 1. Request 유효성 검증
         serializer = CustomExportRequestSerializer(data=request.data)
@@ -85,6 +100,7 @@ class CustomExportAPI(APIView):
         confirm_user_id = validated_data.get('confirm_user_id')
         page = validated_data.get('page')
         page_size = validated_data.get('page_size')
+        response_type = validated_data.get('response_type', 'data')
 
         # 3. 프로젝트 존재 여부 확인
         try:
@@ -108,7 +124,14 @@ class CustomExportAPI(APIView):
         # 5. 전체 개수 계산
         total = queryset.count()
 
-        # 6. 페이징 처리
+        # 6. response_type='count'인 경우 건수만 반환 (성능 최적화)
+        if response_type == 'count':
+            return Response(
+                {"total": total},
+                status=status.HTTP_200_OK
+            )
+
+        # 7. 페이징 처리 (response_type='data'인 경우)
         if page and page_size:
             # 페이징 적용
             start = (page - 1) * page_size
@@ -190,14 +213,31 @@ class CustomExportAPI(APIView):
         if confirm_user_id:
             queryset = queryset.filter(
                 annotations__completed_by_id=confirm_user_id,
-                annotations__completed_by__is_superuser=True
+                annotations__completed_by__is_superuser=True,
+                annotations__was_cancelled=False
             ).distinct()
 
+        # 필수 필터: 검수자(Super User)의 유효한(submit된) annotation이 있는 task만
+        # MLOps 요구사항:
+        # - annotation이 없는 task 제외
+        # - 검수자(is_superuser=True)의 annotation만 포함
+        # - 유효한(was_cancelled=False) annotation만 포함 (임시 저장 제외)
+        queryset = queryset.filter(
+            annotations__completed_by__is_superuser=True,
+            annotations__was_cancelled=False
+        ).distinct()
+
         # Prefetch 최적화: N+1 쿼리 방지
+        # 검수자의 유효한 annotation만 prefetch
+        valid_annotations_queryset = Annotation.objects.filter(
+            completed_by__is_superuser=True,
+            was_cancelled=False
+        ).select_related('completed_by').order_by('-created_at')
+
         queryset = queryset.prefetch_related(
             Prefetch(
                 'annotations',
-                queryset=Annotation.objects.select_related('completed_by').order_by('-created_at')
+                queryset=valid_annotations_queryset
             ),
             Prefetch(
                 'predictions',

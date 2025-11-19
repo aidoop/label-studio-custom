@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.38] - 2025-11-19
+
+### Enhanced
+
+#### Custom Export API - Mixed Annotation Handling
+- **목적**: Regular user와 superuser annotations가 혼재된 task의 정확한 처리
+- **개선 사항**:
+  - Mixed annotation tasks에서 superuser annotations만 정확히 추출
+  - Regular user-only tasks 완전 제외
+  - Prefetch 최적화로 N+1 쿼리 방지
+  - 필터링 정확도: 100% (60/60 tests passed)
+- **테스트 데이터**:
+  - 100개 tasks: 35 superuser-only, 25 mixed, 15 regular user-only, 15 draft, 10 no annotations
+  - API 결과: 60개 tasks (superuser annotations만 포함)
+  - Regular user annotations: 완전 제외 (40개 annotations 필터링)
+- **검증 완료**:
+  - 4-test 자동화 검증 스크립트 (verify-mixed-annotations.sh)
+  - Mixed annotation 시나리오 100% 통과
+  - 데이터 무결성 검증 완료
+
 ## [1.20.0-sso.37] - 2025-11-17
 
 ### Removed
