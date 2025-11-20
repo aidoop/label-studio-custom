@@ -8,11 +8,19 @@ Custom Export API는 MLOps 시스템에서 모델 학습 및 성능 계산을 �
 
 ### 주요 기능
 
+- ✅ **Superuser Annotation만 반환** (v1.20.0-sso.38)
+  - `is_superuser=True`인 사용자의 annotation만 포함
+  - Regular user annotations 자동 제외
+  - Mixed annotations (superuser + regular user) → superuser만 포함
+  - Draft annotations (`was_cancelled=True`) 자동 제외
+- ✅ **응답 타입 선택** (`response_type`)
+  - `count`: 건수만 반환 (페이징 계획용, 빠른 응답)
+  - `data`: 전체 Task 데이터 반환 (기본값)
 - ✅ **동적 날짜 필드 필터링** (`task.data` 내의 모든 날짜 필드 지원)
   - `search_date_field` 파라미터로 필드명 지정
   - 기본값: `source_created_at` (하위 호환성)
 - ✅ 모델 버전 필터링 (`prediction.model_version`)
-- ✅ 승인자 필터링 (`annotation.completed_by` - Super User)
+- ✅ 승인자 필터링 (`annotation.completed_by` - Superuser only)
 - ✅ 선택적 페이징 지원 (기본: 전체 반환)
 - ✅ N+1 쿼리 최적화 (Prefetch)
 - ✅ SQL Injection 방지 (정규식 검증 + 파라미터화)
@@ -44,11 +52,12 @@ Authorization: Bearer <jwt-token>
 ```json
 {
   "project_id": 1,                          // 필수: 프로젝트 ID
+  "response_type": "data",                  // 옵션: 응답 타입 ("data" | "count", 기본값: "data")
   "search_from": "2025-01-01 00:00:00",    // 옵션: 검색 시작일
   "search_to": "2025-01-31 23:59:59",      // 옵션: 검색 종료일
   "search_date_field": "source_created_at", // 옵션: 날짜 필드명 (기본값: source_created_at)
   "model_version": "bert-v1",              // 옵션: 추론 모델 버전
-  "confirm_user_id": 8,                     // 옵션: 승인자 User ID
+  "confirm_user_id": 8,                     // 옵션: 승인자 User ID (Superuser만)
   "page": 1,                                // 옵션: 페이지 번호
   "page_size": 100                          // 옵션: 페이지 크기
 }
@@ -59,27 +68,44 @@ Authorization: Bearer <jwt-token>
 | 파라미터 | 타입 | 필수 | 설명 |
 |---------|------|------|------|
 | `project_id` | Integer | ✅ | Label Studio 프로젝트 ID |
+| `response_type` | String | ❌ | 응답 타입 (기본값: `data`)<br>• `data`: 전체 Task 데이터 반환 (annotations, predictions 포함)<br>• `count`: 총 건수만 반환 (페이징 계획용, 성능 최적화) |
 | `search_from` | DateTime | ❌ | 검색 시작일 (format: `yyyy-mm-dd hh:mi:ss` 또는 ISO 8601)<br>`task.data[search_date_field] >= search_from` |
 | `search_to` | DateTime | ❌ | 검색 종료일 (format: `yyyy-mm-dd hh:mi:ss` 또는 ISO 8601)<br>`task.data[search_date_field] <= search_to` |
 | `search_date_field` | String | ❌ | 검색할 날짜 필드명 (기본값: `source_created_at`)<br>`task.data` JSONB 내의 필드명<br>영문자, 숫자, 언더스코어만 허용 (최대 64자) |
 | `model_version` | String | ❌ | 추론 모델 버전<br>prediction.model_version과 일치하는 Task만 반환 |
-| `confirm_user_id` | Integer | ❌ | 승인자 User ID<br>annotation.completed_by와 일치하고 is_superuser=true인 annotation만 반환 |
+| `confirm_user_id` | Integer | ❌ | 승인자 User ID (Superuser만)<br>annotation.completed_by와 일치하고 is_superuser=true인 annotation만 반환 |
 | `page` | Integer | ❌ | 페이지 번호 (1부터 시작)<br>page_size와 함께 제공되어야 함 |
 | `page_size` | Integer | ❌ | 페이지당 Task 개수 (최대 10000)<br>page와 함께 제공되어야 함 |
 
 ### 필터링 조건 적용 순서
 
 1. `project_id`로 기본 필터링
-2. `search_from`, `search_to`로 날짜 범위 필터링
-3. `model_version`으로 예측 모델 버전 필터링
-4. `confirm_user_id`로 승인자 필터링
-5. 페이징 적용 (선택사항)
+2. **Superuser annotation 필터링** (자동 적용, v1.20.0-sso.38)
+   - `is_superuser=True`인 사용자의 annotation만 포함
+   - `was_cancelled=False` (submit된 annotation만, draft 제외)
+   - Regular user annotations 자동 제외
+3. `search_from`, `search_to`로 날짜 범위 필터링
+4. `model_version`으로 예측 모델 버전 필터링
+5. `confirm_user_id`로 승인자 필터링 (특정 superuser)
+6. 페이징 적용 (선택사항)
 
 ## Response
 
 ### 응답 형식
 
-#### 전체 반환 (페이징 없음)
+#### Count만 반환 (response_type='count')
+
+페이징 계획 수립 시 사용합니다. Task 데이터를 직렬화하지 않아 빠른 응답이 가능합니다.
+
+```json
+{
+  "total": 150
+}
+```
+
+**사용 예시**: 전체 건수를 먼저 파악한 후, 적절한 `page_size`를 계산하여 데이터를 가져오는 워크플로우
+
+#### 전체 데이터 반환 (response_type='data', 페이징 없음)
 
 ```json
 {
@@ -186,6 +212,29 @@ Authorization: Bearer <jwt-token>
 | `annotations` | Array | Annotation 목록 |
 
 ## 사용 예시
+
+### 예시 0: Count만 조회 (response_type='count')
+
+페이징 계획 수립을 위해 전체 건수만 빠르게 조회합니다.
+
+```bash
+curl -X POST http://localhost:8080/api/custom/export/ \
+  -H "Authorization: Token YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": 1,
+    "response_type": "count"
+  }'
+```
+
+**응답:**
+```json
+{
+  "total": 1500
+}
+```
+
+**사용 시나리오**: 전체 건수를 확인한 후 적절한 `page_size`를 계산하여 페이징 처리
 
 ### 예시 1: 전체 Task Export (페이징 없음)
 
@@ -558,12 +607,26 @@ send_performance_to_backend(model_version="bert-v1", accuracy=accuracy)
 
 ## 주의사항
 
-1. **source_created_dt 필드**
+1. **Annotation 필터링 규칙** (v1.20.0-sso.38 자동 적용)
+   - **Superuser만 포함**: `is_superuser=True`인 사용자의 annotation만 반환
+   - **Draft 제외**: `was_cancelled=True`인 임시 저장 annotation 자동 제외
+   - **Regular user 제외**: 일반 사용자(is_superuser=False)의 annotation은 완전 제외
+   - **Mixed annotations 처리**:
+     - 하나의 Task에 superuser와 regular user가 모두 annotation한 경우
+     - API는 해당 Task를 반환하되, **superuser annotations만 포함**
+     - Regular user annotations는 응답에서 제외됨
+   - **Multiple superuser annotations**:
+     - 여러 superuser가 하나의 Task에 annotation한 경우
+     - **모든 superuser annotations 포함**
+     - `-created_at` 순서로 정렬 (최신순)
+   - **Annotation 없는 Task**: 자동 제외 (superuser annotation이 없으면 반환 안 됨)
+
+2. **source_created_dt 필드**
    - Task 생성 시 `data.source_created_dt` 필드를 포함해야 날짜 필터링이 작동합니다.
    - 누비슨 시스템에서 Task 생성 시 자동으로 포함됩니다.
    - **타임존 형식**: ISO 8601 형식 권장 (예: `2025-01-15T10:30:45+09:00`)
 
-2. **타임존 처리**
+3. **타임존 처리**
    - **입력**: `search_from`, `search_to`는 다음 형식 지원
      - ISO 8601 with timezone: `2025-01-15T10:30:45+09:00` (권장)
      - ISO 8601 without timezone: `2025-01-15T10:30:45` (UTC로 간주)
@@ -572,15 +635,15 @@ send_performance_to_backend(model_version="bert-v1", accuracy=accuracy)
    - **저장된 데이터**: `task.data.source_created_dt`도 ISO 8601 형식 권장
    - **권장 사항**: 모든 날짜 데이터를 ISO 8601 형식으로 통일하여 타임존 혼란 방지
 
-3. **model_version 필드**
+4. **model_version 필드**
    - Prediction에 `model_version`을 포함해야 모델 버전 필터링이 작동합니다.
    - Task Import 시 prediction과 함께 전송하세요.
 
-4. **승인자 필터**
+5. **승인자 필터**
    - `confirm_user_id`는 `is_superuser=true`인 사용자만 필터링합니다.
    - 일반 사용자의 annotation은 포함되지 않습니다.
 
-5. **페이징**
+6. **페이징**
    - `page`와 `page_size`는 함께 제공되어야 합니다.
    - 둘 다 없으면 전체 데이터를 반환합니다.
 
@@ -720,9 +783,10 @@ PostgreSQL 쿼리 실행
 - **최초 버전:** v1.20.0-sso.10
 - **오리지널 Serializer 적용:** v1.20.0-sso.11
 - **동적 날짜 필드 필터링 추가:** v1.20.0-sso.22
+- **response_type 및 Mixed Annotation 처리:** v1.20.0-sso.38
 - **Label Studio 기반 버전:** 1.20.0
 - **문서 작성일:** 2025-10-28
-- **최종 수정일:** 2025-11-04
+- **최종 수정일:** 2025-11-20
 
 ## 관련 문서
 
