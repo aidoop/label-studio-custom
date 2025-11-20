@@ -1,7 +1,7 @@
 # Custom Export API 변경 사항 요약
 
 **작성일**: 2025-11-19
-**버전**: label-studio-custom:1.20.0-sso.37 (test)
+**버전**: label-studio-custom:1.20.0-sso.38 (test)
 
 ---
 

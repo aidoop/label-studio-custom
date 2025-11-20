@@ -26,11 +26,11 @@ Label Studio Custom을 HTTPS 환경(프로덕션/개발 서버)에 배포할 때
 
 ### 환경 비교
 
-| 환경 | 프로토콜 | 도메인 예시 | 상태 |
-|------|---------|------------|------|
-| 로컬 개발 | HTTP | `http://label.nubison.localhost:8080` | ✅ 정상 |
-| 개발 서버 | HTTPS | `https://label-dev.nubison.io` | ❌ 실패 |
-| 프로덕션 | HTTPS | `https://label.nubison.io` | ❌ 실패 |
+| 환경      | 프로토콜 | 도메인 예시                           | 상태    |
+| --------- | -------- | ------------------------------------- | ------- |
+| 로컬 개발 | HTTP     | `http://label.nubison.localhost:8080` | ✅ 정상 |
+| 개발 서버 | HTTPS    | `https://label-dev.nubison.io`        | ❌ 실패 |
+| 프로덕션  | HTTPS    | `https://label.nubison.io`            | ❌ 실패 |
 
 ---
 
@@ -56,11 +56,11 @@ HTTPS 환경:
 
 Label Studio에서 사용하는 주요 쿠키:
 
-| 쿠키 이름 | 용도 | Secure 필요 여부 |
-|-----------|------|-----------------|
-| `ls_auth_token` | JWT SSO 토큰 | ✅ 필수 |
-| `ls_sessionid` | Django 세션 ID | ✅ 필수 |
-| `ls_csrftoken` | CSRF 보호 토큰 | ✅ 필수 |
+| 쿠키 이름       | 용도           | Secure 필요 여부 |
+| --------------- | -------------- | ---------------- |
+| `ls_auth_token` | JWT SSO 토큰   | ✅ 필수          |
+| `ls_sessionid`  | Django 세션 ID | ✅ 필수          |
+| `ls_csrftoken`  | CSRF 보호 토큰 | ✅ 필수          |
 
 ---
 
@@ -73,15 +73,15 @@ Label Studio에서 사용하는 주요 쿠키:
 ```yaml
 services:
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
     environment:
       # ============================================================
       # HTTPS 환경 필수 설정
       # ============================================================
 
       # 1. 쿠키 Secure Flag 활성화
-      SESSION_COOKIE_SECURE: true    # 또는 1, yes, on
-      CSRF_COOKIE_SECURE: true       # 또는 1, yes, on
+      SESSION_COOKIE_SECURE: true # 또는 1, yes, on
+      CSRF_COOKIE_SECURE: true # 또는 1, yes, on
 
       # 2. 쿠키 도메인 설정 (서브도메인 간 공유)
       SESSION_COOKIE_DOMAIN: .nubison.io
@@ -116,18 +116,18 @@ services:
 
 ```javascript
 // Node.js/Express 예시
-app.get('/api/sso/token', async (req, res) => {
+app.get("/api/sso/token", async (req, res) => {
   // Label Studio에서 JWT 토큰 발급
   const tokenData = await issueJWT(userEmail);
 
   // 쿠키 설정 (HTTPS 환경)
-  res.cookie('ls_auth_token', tokenData.token, {
-    domain: '.nubison.io',    // ⭐ 중요: 서브도메인 공유
-    path: '/',
-    secure: true,              // ⭐ 중요: HTTPS 필수
-    httpOnly: false,           // JavaScript 접근 가능
-    sameSite: 'lax',           // CSRF 보호
-    maxAge: 600 * 1000,        // 10분
+  res.cookie("ls_auth_token", tokenData.token, {
+    domain: ".nubison.io", // ⭐ 중요: 서브도메인 공유
+    path: "/",
+    secure: true, // ⭐ 중요: HTTPS 필수
+    httpOnly: false, // JavaScript 접근 가능
+    sameSite: "lax", // CSRF 보호
+    maxAge: 600 * 1000, // 10분
   });
 
   res.json({ success: true });
@@ -178,11 +178,11 @@ docker-compose restart labelstudio
 
 ```yaml
 # docker-compose.yml
-version: '3.8'
+version: "3.8"
 
 services:
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
     container_name: label-studio-app
     restart: unless-stopped
 
@@ -260,6 +260,7 @@ environment:
 ### 1단계: 브라우저 개발자 도구로 쿠키 확인
 
 1. **누비슨 콘솔 로그인**
+
    - `https://console-dev.nubison.io` 접속 및 로그인
 
 2. **개발자 도구 열기** (F12 또는 Cmd/Ctrl+Shift+I)
@@ -267,6 +268,7 @@ environment:
 3. **Application 탭 → Cookies → .nubison.io**
 
 4. **ls_auth_token 쿠키 확인**:
+
    ```
    Name:     ls_auth_token
    Value:    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJlbWFpbCI6InRlc3RAbm...
@@ -278,6 +280,7 @@ environment:
    ```
 
 5. **Secure 플래그가 없으면?**
+
    ```
    Secure: (비어있음)  ❌ 문제 발견!
 
@@ -290,9 +293,11 @@ environment:
 1. **Network 탭 열기**
 
 2. **Label Studio 접근**
+
    - `https://label-dev.nubison.io` 접속
 
 3. **요청 헤더 확인**:
+
    ```
    Request URL: https://label-dev.nubison.io/
    Request Headers:
@@ -300,6 +305,7 @@ environment:
    ```
 
 4. **쿠키가 전송되지 않으면?**
+
    ```
    Request Headers:
      Cookie: (없음)                          ❌ 문제 발견!
@@ -319,6 +325,7 @@ docker logs label-studio-app | grep -i jwt
 ```
 
 **정상 동작 시 로그**:
+
 ```
 [JWTAutoLoginMiddleware] JWT token found in cookie
 [JWTAutoLoginMiddleware] Token payload: {'user_id': 1, 'email': 'test@example.com', ...}
@@ -326,6 +333,7 @@ docker logs label-studio-app | grep -i jwt
 ```
 
 **비정상 동작 시 로그**:
+
 ```
 [JWTAutoLoginMiddleware] No JWT token found in cookie      ❌ 쿠키가 전송되지 않음
 [JWTAutoLoginMiddleware] Invalid token signature           ❌ SECRET_KEY 불일치
@@ -356,58 +364,67 @@ curl -v \
 ### 문제 1: 쿠키에 Secure 플래그가 없음
 
 **증상**:
+
 - 브라우저 개발자 도구에서 `ls_auth_token` 쿠키의 Secure 체크박스가 비어있음
 
 **원인**:
+
 - SSO 백엔드에서 쿠키 설정 시 `secure: true` 누락
 
 **해결**:
+
 ```javascript
 // ❌ 잘못된 예
-res.cookie('ls_auth_token', token, {
-  domain: '.nubison.io',
+res.cookie("ls_auth_token", token, {
+  domain: ".nubison.io",
   // secure 속성 없음
 });
 
 // ✅ 올바른 예
-res.cookie('ls_auth_token', token, {
-  domain: '.nubison.io',
-  secure: true,  // ⭐ 추가
+res.cookie("ls_auth_token", token, {
+  domain: ".nubison.io",
+  secure: true, // ⭐ 추가
 });
 ```
 
 ### 문제 2: 쿠키 도메인이 잘못됨
 
 **증상**:
+
 - 쿠키가 특정 서브도메인에만 저장됨
 - 다른 서브도메인에서 쿠키가 보이지 않음
 
 **원인**:
+
 - 도메인 설정이 `.nubison.io`가 아닌 `label-dev.nubison.io`로 되어 있음
 
 **해결**:
+
 ```javascript
 // ❌ 잘못된 예
-res.cookie('ls_auth_token', token, {
-  domain: 'label-dev.nubison.io',  // 특정 서브도메인
+res.cookie("ls_auth_token", token, {
+  domain: "label-dev.nubison.io", // 특정 서브도메인
 });
 
 // ✅ 올바른 예
-res.cookie('ls_auth_token', token, {
-  domain: '.nubison.io',  // ⭐ 점(.)으로 시작 (모든 서브도메인 공유)
+res.cookie("ls_auth_token", token, {
+  domain: ".nubison.io", // ⭐ 점(.)으로 시작 (모든 서브도메인 공유)
 });
 ```
 
 ### 문제 3: Label Studio 환경변수 미설정
 
 **증상**:
+
 - 쿠키는 올바르게 설정되었지만 Label Studio에서 인증 실패
 - `ls_sessionid` 쿠키가 생성되지 않음
 
 **원인**:
+
 - Label Studio 컨테이너의 `SESSION_COOKIE_SECURE` 환경변수 미설정
 
 **해결**:
+
 ```bash
 # 환경변수 확인
 docker exec label-studio-app env | grep COOKIE_SECURE
@@ -422,13 +439,16 @@ environment:
 ### 문제 4: iframe에서만 로그인 실패
 
 **증상**:
+
 - Label Studio에 직접 접근하면 로그인됨
 - iframe에서 접근하면 로그인 안 됨
 
 **원인**:
+
 - CSP (Content Security Policy) 설정으로 iframe 차단
 
 **해결**:
+
 ```yaml
 environment:
   CSP_FRAME_ANCESTORS: "'self' https://console-dev.nubison.io"
@@ -437,13 +457,16 @@ environment:
 ### 문제 5: 로컬에서는 되는데 서버에서 안 됨
 
 **증상**:
+
 - 로컬 개발 환경 (HTTP)에서는 정상
 - 서버 환경 (HTTPS)에서 실패
 
 **원인**:
+
 - HTTP/HTTPS 환경 차이
 
 **해결**:
+
 ```yaml
 # 로컬 개발 (HTTP)
 environment:
@@ -459,12 +482,15 @@ environment:
 ### 문제 6: SECRET_KEY 불일치
 
 **증상**:
+
 - Label Studio 로그에 "Invalid token signature" 에러
 
 **원인**:
+
 - SSO 백엔드와 Label Studio의 `SECRET_KEY`가 다름
 
 **해결**:
+
 ```bash
 # 1. Label Studio의 SECRET_KEY 확인
 docker exec label-studio-app cat /label-studio/data/.secret_key
@@ -480,6 +506,7 @@ docker exec label-studio-app cat /label-studio/data/.secret_key
 배포 전 필수 확인 사항:
 
 ### Label Studio 설정
+
 - [ ] `SESSION_COOKIE_SECURE: true` 설정
 - [ ] `CSRF_COOKIE_SECURE: true` 설정
 - [ ] `SESSION_COOKIE_DOMAIN: .your-domain.com` 설정
@@ -487,12 +514,14 @@ docker exec label-studio-app cat /label-studio/data/.secret_key
 - [ ] `CSP_FRAME_ANCESTORS` 설정 (iframe 사용 시)
 
 ### SSO 백엔드 설정
+
 - [ ] JWT 쿠키 `domain: '.your-domain.com'` 설정
 - [ ] JWT 쿠키 `secure: true` 설정
 - [ ] JWT 쿠키 `sameSite: 'lax'` 설정
 - [ ] SECRET_KEY 일치 확인
 
 ### 검증
+
 - [ ] 브라우저 개발자 도구에서 쿠키 Secure 플래그 확인
 - [ ] Network 탭에서 Cookie 헤더 전송 확인
 - [ ] Label Studio 로그에서 JWT 인증 성공 확인
@@ -503,11 +532,13 @@ docker exec label-studio-app cat /label-studio/data/.secret_key
 ## 참고 자료
 
 ### 관련 문서
+
 - [NUBISON_INTEGRATION_GUIDE.md](./NUBISON_INTEGRATION_GUIDE.md) - iframe 통합 가이드
 - [CUSTOM_SSO_TOKEN_API.md](./CUSTOM_SSO_TOKEN_API.md) - Custom SSO Token API 가이드
 - [README.md](../README.md) - 전체 프로젝트 가이드
 
 ### 외부 링크
+
 - [MDN: Set-Cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie)
 - [MDN: SameSite cookies](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite)
 - [Django: Session Cookie Settings](https://docs.djangoproject.com/en/5.1/ref/settings/#session-cookie-secure)
@@ -519,6 +550,7 @@ docker exec label-studio-app cat /label-studio/data/.secret_key
 문제가 계속 발생하는 경우:
 
 1. **로그 수집**:
+
    ```bash
    # Label Studio 로그
    docker logs label-studio-app > label-studio.log
@@ -528,6 +560,7 @@ docker exec label-studio-app cat /label-studio/data/.secret_key
    ```
 
 2. **브라우저 정보 수집**:
+
    - 개발자 도구 → Application → Cookies 스크린샷
    - 개발자 도구 → Network → 요청/응답 헤더 스크린샷
 

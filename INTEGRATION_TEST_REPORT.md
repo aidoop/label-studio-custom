@@ -1,8 +1,8 @@
 # Custom Export API Integration Test Report
 
-**Date**: 2025-11-19  
-**Environment**: label-studio-sso-app (Production-like environment)  
-**Version**: label-studio-custom:test (1.20.0-sso.37)
+**Date**: 2025-11-19
+**Environment**: label-studio-sso-app (Production-like environment)
+**Version**: label-studio-custom:test (1.20.0-sso.38)
 
 ## Test Summary
 

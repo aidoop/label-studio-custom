@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # Label Studio Custom Image (SSO 통합)
-# Image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
+# Image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
 #
 # ==============================================================================
 
@@ -41,7 +41,7 @@ spec:
       # ===========================================================================
       initContainers:
         - name: migrate
-          image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
+          image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
           imagePullPolicy: IfNotPresent
           command:
             - sh
@@ -97,7 +97,7 @@ spec:
       # ===========================================================================
       containers:
         - name: label-studio
-          image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
+          image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
           imagePullPolicy: IfNotPresent
 
           # 컨테이너 포트

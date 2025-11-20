@@ -95,6 +95,7 @@
   - v1.20.0-sso.34 (AIV Prefix 추가)
   - v1.20.0-sso.36 (User deletion API 수정)
   - v1.20.0-sso.37 (AIV Prefix 제거, 테스트 수정)
+  - v1.20.0-sso.38 (Mixed Annotation 처리 개선)
 - **문서**: [Custom Export API Guide](docs/CUSTOM_EXPORT_API_GUIDE.md)
 
 ### 9. SSO 전용 로그인 페이지
@@ -122,7 +123,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
 
     depends_on:
       - postgres
@@ -185,14 +186,14 @@ docker run -p 8080:8080 \
 
 ### 필수 환경 변수
 
-| 변수                | 설명                                        | 기본값        |
-| ------------------- | ------------------------------------------- | ------------- |
-| `DJANGO_DB`         | 데이터베이스 타입 (`default` 또는 `sqlite`) | `default`     |
-| `POSTGRE_HOST` / `POSTGRES_HOST`     | PostgreSQL 호스트 (POSTGRE_* 우선 사용)                           | `postgres`    |
-| `POSTGRE_DB` / `POSTGRES_DB`       | PostgreSQL 데이터베이스명 (POSTGRE_* 우선 사용)                   | `labelstudio` |
-| `POSTGRE_USER` / `POSTGRES_USER`     | PostgreSQL 사용자명 (POSTGRE_* 우선 사용)                         | `postgres`    |
-| `POSTGRE_PASSWORD` / `POSTGRES_PASSWORD` | PostgreSQL 비밀번호 (POSTGRE_* 우선 사용)                         | -             |
-| `POSTGRE_PORT` / `POSTGRES_PORT` | PostgreSQL 포트 (POSTGRE_* 우선 사용)                         | `5432`             |
+| 변수                                     | 설명                                              | 기본값        |
+| ---------------------------------------- | ------------------------------------------------- | ------------- |
+| `DJANGO_DB`                              | 데이터베이스 타입 (`default` 또는 `sqlite`)       | `default`     |
+| `POSTGRE_HOST` / `POSTGRES_HOST`         | PostgreSQL 호스트 (POSTGRE\_\* 우선 사용)         | `postgres`    |
+| `POSTGRE_DB` / `POSTGRES_DB`             | PostgreSQL 데이터베이스명 (POSTGRE\_\* 우선 사용) | `labelstudio` |
+| `POSTGRE_USER` / `POSTGRES_USER`         | PostgreSQL 사용자명 (POSTGRE\_\* 우선 사용)       | `postgres`    |
+| `POSTGRE_PASSWORD` / `POSTGRES_PASSWORD` | PostgreSQL 비밀번호 (POSTGRE\_\* 우선 사용)       | -             |
+| `POSTGRE_PORT` / `POSTGRES_PORT`         | PostgreSQL 포트 (POSTGRE\_\* 우선 사용)           | `5432`        |
 
 **참고**: v1.20.0-sso.18부터 `POSTGRE_*` 환경변수를 우선적으로 사용하며, 없을 경우 `POSTGRES_*`를 폴백으로 사용합니다.
 
@@ -209,12 +210,12 @@ docker run -p 8080:8080 \
 
 ### 쿠키 설정 (서브도메인 공유)
 
-| 변수                    | 설명             | 예시                 | 기본값 |
-| ----------------------- | ---------------- | -------------------- | ------ |
-| `SESSION_COOKIE_DOMAIN` | 세션 쿠키 도메인 | `.nubison.localhost` | None   |
-| `CSRF_COOKIE_DOMAIN`    | CSRF 쿠키 도메인 | `.nubison.localhost` | None   |
-| `SESSION_COOKIE_SECURE` | HTTPS 환경에서 세션 쿠키 Secure 플래그 (⚠️ HTTPS 필수) | `true` | `false` |
-| `CSRF_COOKIE_SECURE`    | HTTPS 환경에서 CSRF 쿠키 Secure 플래그 (⚠️ HTTPS 필수) | `true` | `false` |
+| 변수                    | 설명                                                   | 예시                 | 기본값  |
+| ----------------------- | ------------------------------------------------------ | -------------------- | ------- |
+| `SESSION_COOKIE_DOMAIN` | 세션 쿠키 도메인                                       | `.nubison.localhost` | None    |
+| `CSRF_COOKIE_DOMAIN`    | CSRF 쿠키 도메인                                       | `.nubison.localhost` | None    |
+| `SESSION_COOKIE_SECURE` | HTTPS 환경에서 세션 쿠키 Secure 플래그 (⚠️ HTTPS 필수) | `true`               | `false` |
+| `CSRF_COOKIE_SECURE`    | HTTPS 환경에서 CSRF 쿠키 Secure 플래그 (⚠️ HTTPS 필수) | `true`               | `false` |
 
 **⚠️ 중요**: HTTPS 환경(프로덕션, 개발서버)에서는 반드시 `SESSION_COOKIE_SECURE=true` 및 `CSRF_COOKIE_SECURE=true`로 설정해야 합니다.
 
@@ -239,10 +240,10 @@ environment:
 
 ### iframe 임베딩 보안 헤더 설정
 
-| 변수                      | 설명                                  | 기본값 | 예시                                                    |
-| ------------------------- | ------------------------------------- | ------ | ------------------------------------------------------- |
-| `CSP_FRAME_ANCESTORS`     | CSP frame-ancestors 설정 (권장)      | 없음   | `'self' https://console-dev.nubison.io`                 |
-| `CONTENT_SECURITY_POLICY` | 전체 CSP 정책 설정 (고급)            | 없음   | `frame-ancestors 'self' https://console.nubison.io;`    |
+| 변수                      | 설명                                 | 기본값 | 예시                                                   |
+| ------------------------- | ------------------------------------ | ------ | ------------------------------------------------------ |
+| `CSP_FRAME_ANCESTORS`     | CSP frame-ancestors 설정 (권장)      | 없음   | `'self' https://console-dev.nubison.io`                |
+| `CONTENT_SECURITY_POLICY` | 전체 CSP 정책 설정 (고급)            | 없음   | `frame-ancestors 'self' https://console.nubison.io;`   |
 | `X_FRAME_OPTIONS`         | X-Frame-Options 설정 (구형 브라우저) | 없음   | `DENY`, `SAMEORIGIN`, `ALLOW-FROM https://example.com` |
 
 **권장 설정 (Content-Security-Policy):**
@@ -772,16 +773,16 @@ docker compose -f docker-compose.test.yml exec labelstudio \
 
 ```bash
 # 이미지 빌드
-docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36 .
+docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38 .
 
 # GitHub Container Registry 로그인
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # 이미지 푸시
-docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32
+docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
 
 # latest 태그 추가
-docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.32 \
+docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38 \
            ghcr.io/aidoop/label-studio-custom:latest
 docker push ghcr.io/aidoop/label-studio-custom:latest
 ```

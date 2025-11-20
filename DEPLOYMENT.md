@@ -1,6 +1,7 @@
 # Label Studio Custom Image - 배포 가이드
 
 ## 목차
+
 - [로컬 빌드 및 테스트](#로컬-빌드-및-테스트)
 - [GitHub Container Registry 배포](#github-container-registry-배포)
 - [HTTPS 프로덕션 배포](#https-프로덕션-배포) ⭐ **중요**
@@ -19,7 +20,7 @@ version: "3.8"
 
 services:
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
 
     environment:
       # ================================================================
@@ -27,12 +28,12 @@ services:
       # ================================================================
 
       # 1. HTTPS 쿠키 보안
-      SESSION_COOKIE_SECURE: "true"        # ← 반드시 true!
-      CSRF_COOKIE_SECURE: "true"           # ← 반드시 true!
+      SESSION_COOKIE_SECURE: "true" # ← 반드시 true!
+      CSRF_COOKIE_SECURE: "true" # ← 반드시 true!
 
       # 2. 쿠키 도메인 (서브도메인 공유)
-      SESSION_COOKIE_DOMAIN: .nubison.io   # 점(.) 필수
-      CSRF_COOKIE_DOMAIN: .nubison.io      # 점(.) 필수
+      SESSION_COOKIE_DOMAIN: .nubison.io # 점(.) 필수
+      CSRF_COOKIE_DOMAIN: .nubison.io # 점(.) 필수
 
       # 3. Label Studio URL (HTTPS)
       LABEL_STUDIO_HOST: https://label-dev.nubison.io
@@ -62,6 +63,7 @@ services:
 ### 배포 체크리스트
 
 #### ✅ **필수 설정**
+
 ```
 [ ] SESSION_COOKIE_SECURE=true 설정
 [ ] CSRF_COOKIE_SECURE=true 설정
@@ -72,6 +74,7 @@ services:
 ```
 
 #### ✅ **배포 후 확인**
+
 ```
 [ ] 브라우저 개발자 도구 → Application → Cookies 확인
     - ls_sessionid 쿠키의 Secure 플래그 확인 (✓ 있어야 함)
@@ -85,41 +88,47 @@ services:
 
 ### HTTP vs HTTPS 설정 비교
 
-| 설정 | HTTP (로컬) | HTTPS (프로덕션) |
-|------|-------------|------------------|
+| 설정                    | HTTP (로컬)      | HTTPS (프로덕션)   |
+| ----------------------- | ---------------- | ------------------ |
 | `SESSION_COOKIE_SECURE` | `false` (기본값) | `true` ⚠️ **필수** |
-| `CSRF_COOKIE_SECURE` | `false` (기본값) | `true` ⚠️ **필수** |
-| `SESSION_COOKIE_DOMAIN` | `.localhost` | `.yourdomain.com` |
-| `CSRF_COOKIE_DOMAIN` | `.localhost` | `.yourdomain.com` |
-| `LABEL_STUDIO_HOST` | `http://...` | `https://...` |
-| 브라우저 Secure 플래그 | 없음 | ✓ 있음 |
+| `CSRF_COOKIE_SECURE`    | `false` (기본값) | `true` ⚠️ **필수** |
+| `SESSION_COOKIE_DOMAIN` | `.localhost`     | `.yourdomain.com`  |
+| `CSRF_COOKIE_DOMAIN`    | `.localhost`     | `.yourdomain.com`  |
+| `LABEL_STUDIO_HOST`     | `http://...`     | `https://...`      |
+| 브라우저 Secure 플래그  | 없음             | ✓ 있음             |
 
 ### 일반적인 문제
 
 #### 문제 1: 로그인 후에도 로그인 페이지가 계속 표시됨
+
 **원인**: `SESSION_COOKIE_SECURE=true`가 설정되지 않음
 
 **해결**:
+
 ```yaml
 environment:
-  SESSION_COOKIE_SECURE: "true"  # 추가
-  CSRF_COOKIE_SECURE: "true"     # 추가
+  SESSION_COOKIE_SECURE: "true" # 추가
+  CSRF_COOKIE_SECURE: "true" # 추가
 ```
 
 #### 문제 2: iframe에서 쿠키가 전달되지 않음
+
 **원인**: 쿠키 도메인이 서브도메인 공유 형식이 아님
 
 **해결**:
+
 ```yaml
 environment:
-  SESSION_COOKIE_DOMAIN: .nubison.io  # 점(.) 추가
-  CSRF_COOKIE_DOMAIN: .nubison.io     # 점(.) 추가
+  SESSION_COOKIE_DOMAIN: .nubison.io # 점(.) 추가
+  CSRF_COOKIE_DOMAIN: .nubison.io # 점(.) 추가
 ```
 
 #### 문제 3: SSO 인증 후 세션이 생성되지 않음
+
 **원인**: JWT 쿠키가 iframe에 전달되지 않음 (Secure 플래그 문제)
 
 **진단**:
+
 ```bash
 # Label Studio 로그 확인
 docker logs label-studio-container -f | grep -i "jwt\|session"
@@ -133,21 +142,23 @@ docker logs label-studio-container -f | grep -i "jwt\|session"
 ```
 
 **해결**:
+
 ```yaml
 environment:
-  SESSION_COOKIE_SECURE: "true"  # Label Studio에 설정
-  CSRF_COOKIE_SECURE: "true"     # Label Studio에 설정
+  SESSION_COOKIE_SECURE: "true" # Label Studio에 설정
+  CSRF_COOKIE_SECURE: "true" # Label Studio에 설정
 ```
 
 그리고 SSO Backend(누비슨 시스템)에서:
+
 ```javascript
 // JWT 쿠키 설정 시
 res.cookie("ls_auth_token", token, {
   domain: ".nubison.io",
-  secure: true,        // ← HTTPS에서 필수!
+  secure: true, // ← HTTPS에서 필수!
   httpOnly: false,
   sameSite: "lax",
-  maxAge: 600 * 1000
+  maxAge: 600 * 1000,
 });
 ```
 
@@ -161,19 +172,20 @@ CSRF 토큰은 JavaScript에서 읽어서 POST/PUT/DELETE 요청 시 `X-CSRFToke
 
 **쿠키별 httpOnly 설정:**
 
-| 쿠키 | httpOnly | 이유 |
-|------|----------|------|
-| `ls_sessionid` | `true` ✅ | XSS 공격 방지, JavaScript 접근 불필요 |
+| 쿠키           | httpOnly   | 이유                                   |
+| -------------- | ---------- | -------------------------------------- |
+| `ls_sessionid` | `true` ✅  | XSS 공격 방지, JavaScript 접근 불필요  |
 | `ls_csrftoken` | `false` ✅ | JavaScript가 읽어서 헤더에 포함해야 함 |
 
 **하지만 HTTPS 환경에서는 Secure 플래그는 필요합니다:**
 
 ```yaml
 environment:
-  CSRF_COOKIE_SECURE: "true"  # HTTPS에서 필수!
+  CSRF_COOKIE_SECURE: "true" # HTTPS에서 필수!
 ```
 
 **배포 후 확인:**
+
 - `ls_csrftoken` 쿠키의 Secure 플래그: ✓ 있어야 함
 - `ls_csrftoken` 쿠키의 HttpOnly 플래그: 없어야 함 (JavaScript 접근 필요)
 
@@ -190,7 +202,7 @@ cd /Users/super/Documents/GitHub/label-studio-custom
 docker build -t label-studio-custom:local .
 
 # 특정 버전으로 빌드
-docker build -t label-studio-custom:1.20.0-sso.36 .
+docker build -t label-studio-custom:1.20.0-sso.38 .
 
 # 빌드 확인
 docker images | grep label-studio-custom
@@ -255,13 +267,13 @@ docker build -t label-studio-custom:local .
 
 # 2. GitHub Container Registry 태그 추가
 # 형식: ghcr.io/<github-username>/<image-name>:<version>
-docker tag label-studio-custom:local ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
+docker tag label-studio-custom:local ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
 
 # 3. latest 태그도 추가
 docker tag label-studio-custom:local ghcr.io/aidoop/label-studio-custom:latest
 
 # 4. 이미지 푸시
-docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
+docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
 docker push ghcr.io/aidoop/label-studio-custom:latest
 
 # 5. 푸시 확인
@@ -281,6 +293,7 @@ docker push ghcr.io/aidoop/label-studio-custom:latest
 #### 준비사항
 
 1. **GitHub 저장소 생성**:
+
    ```bash
    cd /Users/super/Documents/GitHub/label-studio-custom
 
@@ -334,10 +347,11 @@ git push origin v1.20.0-sso.36
 #### GitHub Actions Workflow 확인
 
 **.github/workflows/publish-image.yml**가 자동으로:
+
 1. `v*.*.*-sso.*` 태그 감지
 2. Docker 이미지 빌드
 3. GitHub Container Registry에 푸시:
-   - `ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36`
+   - `ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38`
    - `ghcr.io/aidoop/label-studio-custom:latest`
 4. GitHub Release 생성
 
@@ -375,7 +389,7 @@ v<label-studio-version>-sso.<custom-version>
 
 ```bash
 # Public 이미지 pull (최신 버전)
-docker pull ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
+docker pull ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
 
 # 또는 latest
 docker pull ghcr.io/aidoop/label-studio-custom:latest
@@ -387,7 +401,7 @@ docker pull ghcr.io/aidoop/label-studio-custom:latest
 services:
   labelstudio:
     # 특정 버전 사용 (권장)
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
 
     # 또는 latest (개발용)
     # image: ghcr.io/aidoop/label-studio-custom:latest
@@ -412,7 +426,7 @@ docker buildx create --use
 # 멀티 플랫폼 빌드 및 푸시
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36 \
+  -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38 \
   --push \
   .
 ```
@@ -430,8 +444,8 @@ docker buildx build \
 docker login
 
 # 태그 및 푸시
-docker tag label-studio-custom:local heartyoh/label-studio-custom:1.20.0-sso.36
-docker push heartyoh/label-studio-custom:1.20.0-sso.36
+docker tag label-studio-custom:local heartyoh/label-studio-custom:1.20.0-sso.38
+docker push heartyoh/label-studio-custom:1.20.0-sso.38
 ```
 
 ### AWS ECR
@@ -443,8 +457,8 @@ aws ecr get-login-password --region ap-northeast-2 | \
 
 # 태그 및 푸시
 docker tag label-studio-custom:local \
-  <account-id>.dkr.ecr.ap-northeast-2.amazonaws.com/label-studio-custom:1.20.0-sso.36
-docker push <account-id>.dkr.ecr.ap-northeast-2.amazonaws.com/label-studio-custom:1.20.0-sso.36
+  <account-id>.dkr.ecr.ap-northeast-2.amazonaws.com/label-studio-custom:1.20.0-sso.38
+docker push <account-id>.dkr.ecr.ap-northeast-2.amazonaws.com/label-studio-custom:1.20.0-sso.38
 ```
 
 ---

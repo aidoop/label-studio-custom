@@ -3,6 +3,7 @@
 ## 개요
 
 Label Studio Custom은 환경변수를 통해 iframe 임베딩 보안 헤더를 설정할 수 있습니다:
+
 - **Content-Security-Policy** (CSP) - 최신 브라우저 권장
 - **X-Frame-Options** - 구형 브라우저 지원
 
@@ -57,6 +58,7 @@ CSP_FRAME_ANCESTORS='none'
 ```
 
 **생성되는 헤더:**
+
 ```http
 Content-Security-Policy: frame-ancestors 'self' https://console-dev.nubison.io;
 ```
@@ -71,6 +73,7 @@ CONTENT_SECURITY_POLICY="frame-ancestors 'self' https://console.nubison.io; defa
 ```
 
 **생성되는 헤더:**
+
 ```http
 Content-Security-Policy: frame-ancestors 'self' https://console.nubison.io; default-src 'self'; script-src 'self' 'unsafe-inline'
 ```
@@ -93,6 +96,7 @@ X_FRAME_OPTIONS=ALLOW-FROM https://console.nubison.io
 ```
 
 **생성되는 헤더:**
+
 ```http
 X-Frame-Options: SAMEORIGIN
 ```
@@ -138,6 +142,7 @@ Content-Security-Policy: frame-ancestors *
 ### 시나리오 1: 누비슨 콘솔에서만 iframe 허용
 
 **요구사항:**
+
 - https://console-dev.nubison.io (개발)
 - https://console.nubison.io (운영)
 - http://localhost:4000 (로컬 테스트)
@@ -152,6 +157,7 @@ services:
 ```
 
 **결과:**
+
 - ✅ 누비슨 콘솔에서 iframe 로드 성공
 - ❌ 다른 사이트에서 iframe 로드 차단
 
@@ -160,6 +166,7 @@ services:
 ### 시나리오 2: 개발/운영 환경 분리
 
 **개발 환경:**
+
 ```bash
 # .env.dev
 CSP_FRAME_ANCESTORS='self' https://console-dev.nubison.io http://localhost:4000
@@ -167,6 +174,7 @@ X_FRAME_OPTIONS=SAMEORIGIN
 ```
 
 **운영 환경:**
+
 ```bash
 # .env.prod
 CSP_FRAME_ANCESTORS='self' https://console.nubison.io
@@ -225,10 +233,14 @@ curl -I https://label.nubison.io/projects/
 <!-- 허용된 도메인 (https://console-dev.nubison.io) -->
 <!DOCTYPE html>
 <html>
-<body>
-  <iframe src="https://label.nubison.io/projects/1" width="100%" height="600"></iframe>
-  <!-- ✅ 정상 로드 -->
-</body>
+  <body>
+    <iframe
+      src="https://label.nubison.io/projects/1"
+      width="100%"
+      height="600"
+    ></iframe>
+    <!-- ✅ 정상 로드 -->
+  </body>
 </html>
 ```
 
@@ -236,14 +248,17 @@ curl -I https://label.nubison.io/projects/
 <!-- 허용되지 않은 도메인 (https://other-site.com) -->
 <!DOCTYPE html>
 <html>
-<body>
-  <iframe src="https://label.nubison.io/projects/1" width="100%" height="600"></iframe>
-  <!-- ❌ 브라우저 콘솔 오류:
+  <body>
+    <iframe
+      src="https://label.nubison.io/projects/1"
+      width="100%"
+      height="600"
+    ></iframe>
+    <!-- ❌ 브라우저 콘솔 오류:
        Refused to display 'https://label.nubison.io/projects/1' in a frame
        because an ancestor violates the following Content Security Policy directive:
        "frame-ancestors 'self' https://console-dev.nubison.io"
-  -->
-</body>
+  --></body>
 </html>
 ```
 
@@ -254,11 +269,11 @@ curl -I https://label.nubison.io/projects/
 ### docker-compose.yml
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.36
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
     environment:
       # iframe 보안 헤더 설정
       CSP_FRAME_ANCESTORS: "'self' https://console-dev.nubison.io https://console.nubison.io"
@@ -293,18 +308,22 @@ services:
 ### Q1: iframe이 로드되지 않아요
 
 **증상:**
+
 ```
 Refused to display in a frame because it set 'X-Frame-Options' to 'DENY'
 ```
 
 **해결:**
+
 1. 환경변수 확인:
+
    ```bash
    docker exec label-studio-app env | grep CSP
    docker exec label-studio-app env | grep X_FRAME
    ```
 
 2. 헤더 확인:
+
    ```bash
    curl -I https://label.nubison.io/
    ```
@@ -326,6 +345,7 @@ Refused to display in a frame because it set 'X-Frame-Options' to 'DENY'
 ### Q3: 여러 도메인을 허용하고 싶어요
 
 **해결:**
+
 ```bash
 # 공백으로 구분하여 여러 도메인 나열
 CSP_FRAME_ANCESTORS='self' https://console-dev.nubison.io https://console.nubison.io https://admin.nubison.io
@@ -336,6 +356,7 @@ CSP_FRAME_ANCESTORS='self' https://console-dev.nubison.io https://console.nubiso
 ### Q4: http와 https를 모두 허용하고 싶어요
 
 **해결:**
+
 ```bash
 # 프로토콜을 명시적으로 포함
 CSP_FRAME_ANCESTORS='self' http://localhost:4000 https://console-dev.nubison.io
@@ -348,6 +369,7 @@ CSP_FRAME_ANCESTORS='self' http://localhost:4000 https://console-dev.nubison.io
 ### Q5: 포트번호가 다른 같은 도메인 허용
 
 **해결:**
+
 ```bash
 # 포트번호를 명시적으로 포함
 CSP_FRAME_ANCESTORS='self' https://console-dev.nubison.io:4000 https://console-dev.nubison.io
@@ -358,13 +380,16 @@ CSP_FRAME_ANCESTORS='self' https://console-dev.nubison.io:4000 https://console-d
 ## 📚 참고 자료
 
 ### Content-Security-Policy
+
 - [MDN: Content-Security-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy)
 - [CSP frame-ancestors](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors)
 
 ### X-Frame-Options
+
 - [MDN: X-Frame-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options)
 
 ### 브라우저 지원
+
 - CSP frame-ancestors: Chrome 40+, Firefox 33+, Safari 10+, Edge 15+
 - X-Frame-Options: 모든 최신 브라우저 지원
 
@@ -373,6 +398,7 @@ CSP_FRAME_ANCESTORS='self' https://console-dev.nubison.io:4000 https://console-d
 ## 🔒 보안 권장사항
 
 1. **프로덕션에서는 구체적인 도메인 명시**
+
    ```bash
    # ✅ 좋음
    CSP_FRAME_ANCESTORS='self' https://console.nubison.io
@@ -382,6 +408,7 @@ CSP_FRAME_ANCESTORS='self' https://console-dev.nubison.io:4000 https://console-d
    ```
 
 2. **https 사용**
+
    ```bash
    # ✅ 좋음
    CSP_FRAME_ANCESTORS='self' https://console.nubison.io
@@ -391,6 +418,7 @@ CSP_FRAME_ANCESTORS='self' https://console-dev.nubison.io:4000 https://console-d
    ```
 
 3. **최소 권한 원칙**
+
    - 필요한 도메인만 허용
    - 테스트 도메인은 프로덕션에서 제거
 
@@ -403,9 +431,11 @@ CSP_FRAME_ANCESTORS='self' https://console-dev.nubison.io:4000 https://console-d
 ## 📝 변경 이력
 
 ### v1.20.0-sso.19 (예정)
+
 - Content-Security-Policy 환경변수 지원 추가
 - X-Frame-Options 환경변수 개선
 - 커스텀 보안 미들웨어 구현
 
 ### 기존 버전
+
 - X-Frame-Options 기본 지원 (ALLOW/DENY/SAMEORIGIN)
