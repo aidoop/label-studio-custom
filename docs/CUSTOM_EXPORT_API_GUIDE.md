@@ -117,7 +117,7 @@ Authorization: Bearer <jwt-token>
       "data": {
         "text": "샘플 텍스트",
         "image": "https://example.com/image.jpg",
-        "source_created_dt": "2025-01-15 10:30:45"
+        "source_created_at": "2025-01-15 10:30:45"
       },
       "meta": {},
       "created_at": "2025-01-15T10:30:00Z",
@@ -621,8 +621,8 @@ send_performance_to_backend(model_version="bert-v1", accuracy=accuracy)
      - `-created_at` 순서로 정렬 (최신순)
    - **Annotation 없는 Task**: 자동 제외 (superuser annotation이 없으면 반환 안 됨)
 
-2. **source_created_dt 필드**
-   - Task 생성 시 `data.source_created_dt` 필드를 포함해야 날짜 필터링이 작동합니다.
+2. **source_created_at 필드**
+   - Task 생성 시 `data.source_created_at` 필드를 포함해야 날짜 필터링이 작동합니다.
    - 누비슨 시스템에서 Task 생성 시 자동으로 포함됩니다.
    - **타임존 형식**: ISO 8601 형식 권장 (예: `2025-01-15T10:30:45+09:00`)
 
@@ -632,7 +632,7 @@ send_performance_to_backend(model_version="bert-v1", accuracy=accuracy)
      - ISO 8601 without timezone: `2025-01-15T10:30:45` (UTC로 간주)
      - 일반 형식: `2025-01-15 10:30:45` (UTC로 간주)
    - **비교**: PostgreSQL의 `timestamptz`로 변환하여 타임존을 고려한 정확한 비교
-   - **저장된 데이터**: `task.data.source_created_dt`도 ISO 8601 형식 권장
+   - **저장된 데이터**: `task.data.source_created_at`도 ISO 8601 형식 권장
    - **권장 사항**: 모든 날짜 데이터를 ISO 8601 형식으로 통일하여 타임존 혼란 방지
 
 4. **model_version 필드**
