@@ -626,22 +626,15 @@ send_performance_to_backend(model_version="bert-v1", accuracy=accuracy)
    - 누비슨 시스템에서 Task 생성 시 자동으로 포함됩니다.
    - **형식**: 일반 문자열 형식 사용 (예: `"2025-01-15 10:30:45"`)
 
-3. **타임존 처리**
-   - **API 필터 입력**: `search_from`, `search_to`는 다음 형식 지원
-     - ISO 8601 with timezone: `2025-01-15T10:30:45+09:00`
-     - ISO 8601 without timezone: `2025-01-15T10:30:45` (UTC로 간주)
-     - 일반 형식: `2025-01-15 10:30:45` (UTC로 간주)
-   - **비교 처리**: PostgreSQL의 `timestamptz`로 변환하여 타임존을 고려한 정확한 비교
-
-4. **model_version 필드**
+3. **model_version 필드**
    - Prediction에 `model_version`을 포함해야 모델 버전 필터링이 작동합니다.
    - Task Import 시 prediction과 함께 전송하세요.
 
-5. **승인자 필터**
+4. **승인자 필터**
    - `confirm_user_id`는 `is_superuser=true`인 사용자만 필터링합니다.
    - 일반 사용자의 annotation은 포함되지 않습니다.
 
-6. **페이징**
+5. **페이징**
    - `page`와 `page_size`는 함께 제공되어야 합니다.
    - 둘 다 없으면 전체 데이터를 반환합니다.
 
