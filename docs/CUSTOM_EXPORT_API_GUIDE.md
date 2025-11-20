@@ -624,16 +624,16 @@ send_performance_to_backend(model_version="bert-v1", accuracy=accuracy)
 2. **source_created_at 필드**
    - Task 생성 시 `data.source_created_at` 필드를 포함해야 날짜 필터링이 작동합니다.
    - 누비슨 시스템에서 Task 생성 시 자동으로 포함됩니다.
-   - **타임존 형식**: ISO 8601 형식 권장 (예: `2025-01-15T10:30:45+09:00`)
+   - **형식**: 일반 문자열 형식 사용 (예: `"2025-01-15 10:30:45"`)
 
 3. **타임존 처리**
    - **입력**: `search_from`, `search_to`는 다음 형식 지원
-     - ISO 8601 with timezone: `2025-01-15T10:30:45+09:00` (권장)
+     - ISO 8601 with timezone: `2025-01-15T10:30:45+09:00`
      - ISO 8601 without timezone: `2025-01-15T10:30:45` (UTC로 간주)
      - 일반 형식: `2025-01-15 10:30:45` (UTC로 간주)
    - **비교**: PostgreSQL의 `timestamptz`로 변환하여 타임존을 고려한 정확한 비교
-   - **저장된 데이터**: `task.data.source_created_at`도 ISO 8601 형식 권장
-   - **권장 사항**: 모든 날짜 데이터를 ISO 8601 형식으로 통일하여 타임존 혼란 방지
+   - **저장된 데이터**: `task.data.source_created_at`은 일반 문자열 형식 사용 (`"2025-01-15 10:30:45"`)
+   - **참고**: API 필터 파라미터(`search_from`, `search_to`)는 다양한 형식 지원하지만, task.data에 저장된 값은 일반 문자열 형식
 
 4. **model_version 필드**
    - Prediction에 `model_version`을 포함해야 모델 버전 필터링이 작동합니다.
