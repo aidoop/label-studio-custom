@@ -98,7 +98,8 @@
   - v1.20.0-sso.38 (Mixed Annotation 처리 개선)
   - v1.20.0-sso.39 (Date Range Filter UI 추가)
   - v1.20.0-sso.40 (Date Range Filter UI 아이콘 개선)
-  - v1.20.0-sso.41 (URL 라우팅 정리)
+  - v1.20.0-sso.41 (Custom Version API URL 정리)
+  - v1.20.0-sso.42 (Custom Version API 완전 제거)
 - **문서**: [Custom Export API Guide](docs/CUSTOM_EXPORT_API_GUIDE.md)
 
 ### 8. Data Manager 날짜 범위 필터 UI

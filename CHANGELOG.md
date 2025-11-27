@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.42] - 2025-11-28
+
+### Fixed
+
+#### Custom Version API 완전 제거
+- **배경**: v1.20.0-sso.41에서 urls_simple.py의 version URL만 제거했으나, `/api/version`이 여전히 커스텀 버전 반환
+- **원인**: `path('api/', include('custom_api.urls'))`가 `custom_api/urls.py`의 `path('version/', ...)`와 결합
+- **해결**:
+  - `custom-api/urls.py`에서 `path('version/', CustomVersionAPI.as_view())` 제거
+  - `CustomVersionAPI` import 제거
+- **결과**:
+  - `/version` → Label Studio 기본 버전 (1.20.0) ✅
+  - `/api/version` → Label Studio 기본 버전 (1.20.0) ✅
+
 ## [1.20.0-sso.41] - 2025-11-28
 
 ### Changed
