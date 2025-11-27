@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.39] - 2025-11-27
+
+### Added
+
+#### Data Manager 날짜 범위 필터 UI
+- **목적**: 라벨러가 `source_created_at` 필드로 Task를 쉽게 검색할 수 있도록 UI 제공
+- **위치**: Data Manager (Tasks 목록) 페이지의 "Label All Tasks" 버튼 옆
+- **주요 기능**:
+  - 날짜 범위 입력 필드 (시작일 ~ 종료일)
+  - 페이지 리로드 없이 필터 적용 (View API PATCH 사용)
+  - 기존 필터 및 정렬과 완벽 호환 (AND 조건)
+  - 페이지 새로고침 시 필터 자동 복원 및 재적용
+  - 초기화 버튼으로 필터 즉시 제거
+- **기술 구현**:
+  - Label Studio View API (`/api/dm/views/{id}/`) 활용
+  - MobX 상태 직접 업데이트로 UI 동기화
+  - `custom-templates/base.html`에 JavaScript로 구현
+  - DataManager 로드 대기 후 필터 자동 복원
+- **해결한 문제**:
+  - MobX State Tree 중복 뷰 오류 해결 (`fetchTabs` 제거)
+  - 필터 적용 후 정렬 기능 유지
+  - 페이지 새로고침 시 필터 유실 방지
+
 ## [1.20.0-sso.38] - 2025-11-19
 
 ### Enhanced
