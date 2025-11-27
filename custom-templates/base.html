@@ -81,6 +81,434 @@
         return urlParams.get('hideHeader') === 'true';
       }
 
+      /**
+       * Custom Date Range Filter for Data Manager
+       * Adds source_created_at date range search UI to tasks list page
+       */
+      function initDateRangeFilter() {
+        // Only apply on project data manager page (tasks list)
+        if (!window.location.pathname.match(/\/projects\/\d+\/data/)) {
+          return;
+        }
+
+        // Prevent multiple initializations
+        if (document.getElementById('custom-date-filter-container')) {
+          return;
+        }
+
+        function createDateFilterUI() {
+          const container = document.createElement('div');
+          container.id = 'custom-date-filter-container';
+          container.style.cssText = `
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 16px;
+            padding: 4px 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-size: 13px;
+          `;
+
+          container.innerHTML = `
+            <span style="color: #666; font-weight: 500;">source_created_at</span>
+            <input type="date" id="date-filter-from"
+                   style="padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
+            <span style="color: #666;">~</span>
+            <input type="date" id="date-filter-to"
+                   style="padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
+            <button id="date-filter-search"
+                    style="padding: 6px 16px; background: #4299e1; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+              검색
+            </button>
+            <button id="date-filter-clear"
+                    style="padding: 6px 12px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+              초기화
+            </button>
+          `;
+
+          return container;
+        }
+
+        async function applyDateFilter() {
+          const fromInput = document.getElementById('date-filter-from');
+          const toInput = document.getElementById('date-filter-to');
+
+          const fromValue = fromInput.value;
+          const toValue = toInput.value;
+
+          if (!fromValue && !toValue) {
+            alert('검색 기간을 입력해주세요.');
+            return;
+          }
+
+          // Build filter items for Label Studio Data Manager
+          const filterItems = [];
+
+          if (fromValue) {
+            // Format: YYYY-MM-DD 00:00:00 (string comparison)
+            filterItems.push({
+              filter: 'filter:tasks:data.source_created_at',
+              operator: 'greater_or_equal',
+              type: 'String',
+              value: fromValue + ' 00:00:00'
+            });
+          }
+
+          if (toValue) {
+            // Format: YYYY-MM-DD 23:59:59 (string comparison)
+            filterItems.push({
+              filter: 'filter:tasks:data.source_created_at',
+              operator: 'less_or_equal',
+              type: 'String',
+              value: toValue + ' 23:59:59'
+            });
+          }
+
+          // Try to update view filters via DataManager internal API
+          if (window.dataManager && window.dataManager.store) {
+            try {
+              const store = window.dataManager.store;
+              const currentView = store.currentView;
+
+              if (currentView) {
+                // Get existing filters and merge with new date filters
+                let existingFilters = [];
+                if (currentView.filters) {
+                  // Remove existing source_created_at filters
+                  existingFilters = currentView.filters.filter(f =>
+                    !f.filter || !f.filter.filter || !f.filter.filter.includes('source_created_at')
+                  );
+                }
+
+                // Create new filters using DataManager's createFilter method
+                // First, clear existing source_created_at filters
+                if (currentView.filters) {
+                  const toRemove = currentView.filters.filter(f =>
+                    f.filter && f.filter.filter && f.filter.filter.includes('source_created_at')
+                  );
+                  for (const f of toRemove) {
+                    if (typeof currentView.deleteFilter === 'function') {
+                      currentView.deleteFilter(f);
+                    }
+                  }
+                }
+
+                // Add new date filters by updating view data directly
+                const currentFiltersData = currentView.filterSnapshotRecords || [];
+                const newFiltersData = currentFiltersData.filter(f =>
+                  !f.filter || !f.filter.includes('source_created_at')
+                );
+                newFiltersData.push(...filterItems);
+
+                // Update view via API - preserve existing data, only update filters
+                const viewId = currentView.id;
+
+                if (viewId) {
+                  // First, get current view data to preserve columns and other settings
+                  const getResponse = await fetch(`/api/dm/views/${viewId}/`, {
+                    method: 'GET',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ''
+                    }
+                  });
+
+                  if (getResponse.ok) {
+                    const viewData = await getResponse.json();
+                    const existingData = viewData.data || {};
+
+                    // Update only filters, keep everything else (columns, ordering, etc.)
+                    const updatedData = {
+                      ...existingData,
+                      filters: {
+                        conjunction: 'and',
+                        items: newFiltersData
+                      }
+                    };
+
+                    const patchResponse = await fetch(`/api/dm/views/${viewId}/`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ''
+                      },
+                      body: JSON.stringify({
+                        data: updatedData
+                      })
+                    });
+
+                    if (patchResponse.ok) {
+                      // Update local MobX state to match server, then reload tasks
+                      try {
+                        // Update filters in local state (MobX observable)
+                        if (currentView.data) {
+                          currentView.data.filters = updatedData.filters;
+                        }
+
+                        // Also update filterSnapshotRecords if it exists
+                        if (currentView.filterSnapshotRecords !== undefined) {
+                          currentView.filterSnapshotRecords.replace ?
+                            currentView.filterSnapshotRecords.replace(newFiltersData) :
+                            (currentView.filterSnapshotRecords = newFiltersData);
+                        }
+
+                        // Reload task data with updated filters
+                        if (typeof currentView.reload === 'function') {
+                          await currentView.reload();
+                        }
+                      } catch (syncError) {
+                        console.log('[DateFilter] State sync error:', syncError);
+                      }
+
+                      console.log('[DateFilter] Filters updated via View API');
+                      return;
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              console.log('[DateFilter] DataManager API error:', e);
+            }
+          }
+
+          // Fallback: full page reload
+          console.log('[DateFilter] Fallback to page reload');
+          const url = new URL(window.location.href);
+          const existingQuery = { filters: { conjunction: 'and', items: filterItems } };
+          url.searchParams.set('query', JSON.stringify(existingQuery));
+          window.location.href = url.toString();
+        }
+
+        async function clearDateFilter() {
+          // Clear input fields
+          const fromInput = document.getElementById('date-filter-from');
+          const toInput = document.getElementById('date-filter-to');
+          if (fromInput) fromInput.value = '';
+          if (toInput) toInput.value = '';
+
+          // Try to clear filters via View API
+          if (window.dataManager && window.dataManager.store) {
+            try {
+              const store = window.dataManager.store;
+              const currentView = store.currentView;
+
+              if (currentView) {
+                const viewId = currentView.id;
+
+                if (viewId) {
+                  // First, get current view data to preserve columns and other settings
+                  const getResponse = await fetch(`/api/dm/views/${viewId}/`, {
+                    method: 'GET',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ''
+                    }
+                  });
+
+                  if (getResponse.ok) {
+                    const viewData = await getResponse.json();
+                    const existingData = viewData.data || {};
+
+                    // Remove source_created_at filters, keep everything else
+                    const existingFilters = existingData.filters || { conjunction: 'and', items: [] };
+                    const newFiltersItems = (existingFilters.items || []).filter(f =>
+                      !f.filter || !f.filter.includes('source_created_at')
+                    );
+
+                    const updatedData = {
+                      ...existingData,
+                      filters: {
+                        conjunction: existingFilters.conjunction || 'and',
+                        items: newFiltersItems
+                      }
+                    };
+
+                    const patchResponse = await fetch(`/api/dm/views/${viewId}/`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ''
+                      },
+                      body: JSON.stringify({
+                        data: updatedData
+                      })
+                    });
+
+                    if (patchResponse.ok) {
+                      // Update local MobX state to match server, then reload tasks
+                      try {
+                        if (currentView.data) {
+                          currentView.data.filters = updatedData.filters;
+                        }
+
+                        if (currentView.filterSnapshotRecords !== undefined) {
+                          currentView.filterSnapshotRecords.replace ?
+                            currentView.filterSnapshotRecords.replace(newFiltersItems) :
+                            (currentView.filterSnapshotRecords = newFiltersItems);
+                        }
+
+                        if (typeof currentView.reload === 'function') {
+                          await currentView.reload();
+                        }
+                      } catch (syncError) {
+                        console.log('[DateFilter] State sync error:', syncError);
+                      }
+
+                      console.log('[DateFilter] Filters cleared via View API');
+                      return;
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              console.log('[DateFilter] DataManager API error:', e);
+            }
+          }
+
+          // Fallback: full page reload
+          console.log('[DateFilter] Fallback to page reload');
+          window.location.reload();
+        }
+
+        function restoreDateValuesFromView() {
+          // Restore date values from DataManager's current view
+          // Wait for DataManager to be ready
+          let checkAttempts = 0;
+          const maxCheckAttempts = 30;
+
+          const checkDataManager = setInterval(async () => {
+            checkAttempts++;
+
+            if (checkAttempts >= maxCheckAttempts) {
+              clearInterval(checkDataManager);
+              console.log('[DateFilter] DataManager not ready after max attempts');
+              return;
+            }
+
+            if (!window.dataManager || !window.dataManager.store || !window.dataManager.store.currentView) {
+              return;
+            }
+
+            clearInterval(checkDataManager);
+
+            try {
+              const currentView = window.dataManager.store.currentView;
+              const viewId = currentView.id;
+
+              // Fetch current view data from server to get saved filters
+              const response = await fetch(`/api/dm/views/${viewId}/`, {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json'
+                }
+              });
+
+              if (!response.ok) return;
+
+              const viewData = await response.json();
+              const filters = viewData.data?.filters;
+
+              if (filters && filters.items && filters.items.length > 0) {
+                let hasDateFilter = false;
+
+                filters.items.forEach(item => {
+                  if (item.filter && item.filter.includes('source_created_at')) {
+                    hasDateFilter = true;
+                    // Extract date part from "YYYY-MM-DD HH:mm:ss" format
+                    const datePart = item.value ? item.value.split(' ')[0] : '';
+
+                    if (item.operator === 'greater_or_equal' || item.operator === 'greater') {
+                      const fromInput = document.getElementById('date-filter-from');
+                      if (fromInput) fromInput.value = datePart;
+                    } else if (item.operator === 'less_or_equal' || item.operator === 'less') {
+                      const toInput = document.getElementById('date-filter-to');
+                      if (toInput) toInput.value = datePart;
+                    }
+                  }
+                });
+
+                // If view has date filters, ensure they are applied
+                if (hasDateFilter) {
+                  // Update local state and reload to apply filters
+                  if (currentView.data) {
+                    currentView.data.filters = filters;
+                  }
+
+                  if (typeof currentView.reload === 'function') {
+                    await currentView.reload();
+                  }
+                }
+              }
+            } catch (e) {
+              console.log('[DateFilter] Error restoring date values:', e);
+            }
+          }, 200);
+        }
+
+        function insertDateFilter() {
+          // Look for the toolbar row that contains Label All Tasks button
+          // Find the lsf-space-dm container which is the toolbar row
+          const toolbarRow = document.querySelector('.lsf-space-dm.lsf-space-dm_direction_horizontal.lsf-space-dm_size_small');
+
+          if (!toolbarRow) {
+            return false;
+          }
+
+          const filterUI = createDateFilterUI();
+
+          // Append to the toolbar row (same line as Label All Tasks)
+          toolbarRow.appendChild(filterUI);
+
+          // Add event listeners
+          document.getElementById('date-filter-search').addEventListener('click', applyDateFilter);
+          document.getElementById('date-filter-clear').addEventListener('click', clearDateFilter);
+
+          // Allow Enter key to trigger search
+          document.getElementById('date-filter-from').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') applyDateFilter();
+          });
+          document.getElementById('date-filter-to').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') applyDateFilter();
+          });
+
+          // Restore date values from saved view filters and re-apply if needed
+          restoreDateValuesFromView();
+
+          return true;
+        }
+
+        // Try to insert with retry (React SPA needs time to render)
+        let attempts = 0;
+        const maxAttempts = 50;
+        const tryInsert = setInterval(() => {
+          attempts++;
+          // Double-check before inserting
+          if (document.getElementById('custom-date-filter-container')) {
+            clearInterval(tryInsert);
+            return;
+          }
+          if (insertDateFilter() || attempts >= maxAttempts) {
+            clearInterval(tryInsert);
+          }
+        }, 200);
+      }
+
+      // Initialize only once using a flag
+      let dateFilterInitialized = false;
+      function initDateRangeFilterOnce() {
+        if (dateFilterInitialized) return;
+        dateFilterInitialized = true;
+        initDateRangeFilter();
+      }
+
+      // Initialize date range filter after page load
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDateRangeFilterOnce);
+      } else {
+        initDateRangeFilterOnce();
+      }
+
       // Monitor and apply hideHeader with very aggressive CSS
       function applyHideHeader() {
         const hideHeader = shouldHideHeader();
