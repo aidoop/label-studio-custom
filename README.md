@@ -96,7 +96,23 @@
   - v1.20.0-sso.36 (User deletion API 수정)
   - v1.20.0-sso.37 (AIV Prefix 제거, 테스트 수정)
   - v1.20.0-sso.38 (Mixed Annotation 처리 개선)
+  - v1.20.0-sso.39 (Date Range Filter UI 추가)
 - **문서**: [Custom Export API Guide](docs/CUSTOM_EXPORT_API_GUIDE.md)
+
+### 8. Data Manager 날짜 범위 필터 UI
+
+- **목적**: 라벨러가 `source_created_at` 필드로 Task를 쉽게 검색할 수 있도록 UI 제공
+- **위치**: Data Manager (Tasks 목록) 페이지의 "Label All Tasks" 버튼 옆
+- **주요 기능**:
+  - 날짜 범위 입력 (시작일 ~ 종료일)
+  - 페이지 리로드 없이 필터 적용 (View API 사용)
+  - 기존 필터 및 정렬과 호환 (AND 조건)
+  - 페이지 새로고침 시 필터 자동 복원 및 재적용
+  - 초기화 버튼으로 필터 제거
+- **기술 구현**:
+  - Label Studio View API (`/api/dm/views/{id}/`)로 필터 저장
+  - MobX 상태 직접 업데이트로 UI 동기화
+  - `custom-templates/base.html`에 JavaScript로 구현
 
 ### 9. SSO 전용 로그인 페이지
 
@@ -773,16 +789,16 @@ docker compose -f docker-compose.test.yml exec labelstudio \
 
 ```bash
 # 이미지 빌드
-docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38 .
+docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.39 .
 
 # GitHub Container Registry 로그인
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # 이미지 푸시
-docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
+docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.39
 
 # latest 태그 추가
-docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38 \
+docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.39 \
            ghcr.io/aidoop/label-studio-custom:latest
 docker push ghcr.io/aidoop/label-studio-custom:latest
 ```
@@ -793,7 +809,7 @@ docker push ghcr.io/aidoop/label-studio-custom:latest
 
 - `1.20.0-sso.1` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 1
 - `1.20.0-sso.2` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 2 (bugfix)
-- `1.20.0-sso.11` - Label Studio 1.20.0 기반, Custom Export API 오리지널 Serializer 적용 (현재 버전)
+- `1.20.0-sso.39` - Label Studio 1.20.0 기반, Data Manager 날짜 범위 필터 UI 추가 (현재 버전)
 - `1.21.0-sso.1` - Label Studio 1.21.0 업그레이드 (미래)
 
 ### 브랜치 전략
