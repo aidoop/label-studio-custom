@@ -73,14 +73,6 @@ urlpatterns = [
     # 중요: users.urls보다 먼저 등록하여 기본 로그인 URL을 오버라이드
     path('user/login/', sso_login_required, name='user-login'),
 
-    # ==============================================================================
-    # Custom Version API 오버라이드
-    # ==============================================================================
-    # 커스텀 버전 정보 표시 (v1.20.0-sso.30 등)
-    # 중요: 기본 version URL보다 먼저 등록하여 오버라이드
-    path('version/', include('custom_api.urls')),
-    path('api/version/', include('custom_api.urls')),
-
     # Label Studio 앱 URL 패턴
     re_path(r'^', include('organizations.urls')),
     re_path(r'^', include('projects.urls')),

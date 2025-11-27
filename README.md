@@ -98,6 +98,7 @@
   - v1.20.0-sso.38 (Mixed Annotation 처리 개선)
   - v1.20.0-sso.39 (Date Range Filter UI 추가)
   - v1.20.0-sso.40 (Date Range Filter UI 아이콘 개선)
+  - v1.20.0-sso.41 (URL 라우팅 정리)
 - **문서**: [Custom Export API Guide](docs/CUSTOM_EXPORT_API_GUIDE.md)
 
 ### 8. Data Manager 날짜 범위 필터 UI
@@ -790,16 +791,16 @@ docker compose -f docker-compose.test.yml exec labelstudio \
 
 ```bash
 # 이미지 빌드
-docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.40 .
+docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.41 .
 
 # GitHub Container Registry 로그인
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # 이미지 푸시
-docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.40
+docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.41
 
 # latest 태그 추가
-docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.40 \
+docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.41 \
            ghcr.io/aidoop/label-studio-custom:latest
 docker push ghcr.io/aidoop/label-studio-custom:latest
 ```
@@ -810,7 +811,7 @@ docker push ghcr.io/aidoop/label-studio-custom:latest
 
 - `1.20.0-sso.1` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 1
 - `1.20.0-sso.2` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 2 (bugfix)
-- `1.20.0-sso.40` - Label Studio 1.20.0 기반, 날짜 필터 UI 아이콘 개선 (현재 버전)
+- `1.20.0-sso.41` - Label Studio 1.20.0 기반, URL 라우팅 정리 (현재 버전)
 - `1.21.0-sso.1` - Label Studio 1.21.0 업그레이드 (미래)
 
 ### 브랜치 전략

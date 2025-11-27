@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.41] - 2025-11-28
+
+### Changed
+
+#### URL 라우팅 정리
+- **제거**: 불필요한 Custom Version API URL 오버라이드 제거
+  - `path('version/', include('custom_api.urls'))` 제거
+  - `path('api/version/', include('custom_api.urls'))` 제거
+- **효과**: Label Studio 기본 버전 API 사용으로 VersionNotifier.jsx 오류 해결
+
 ## [1.20.0-sso.40] - 2025-11-28
 
 ### Changed
