@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.40] - 2025-11-28
+
+### Changed
+
+#### 날짜 필터 UI 개선
+- **변경**: 검색/초기화 버튼을 아이콘으로 변경
+  - 검색 버튼: "검색" → 🔍 (돋보기 아이콘)
+  - 초기화 버튼: "초기화" → ✕ (X 아이콘)
+- **개선**: 더 컴팩트하고 깔끔한 UI
+- **접근성**: 마우스 오버 시 툴팁으로 기능 설명 표시
+
 ## [1.20.0-sso.39] - 2025-11-27
 
 ### Added
