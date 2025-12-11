@@ -557,6 +557,102 @@
         }
       }
 
+      /**
+       * Hide Import Button Feature
+       *
+       * Hides the Import button in Data Manager to prevent direct imports
+       * which could cause data inconsistencies.
+       *
+       * This is always enabled to protect data integrity.
+       */
+      function hideImportButton() {
+        // Add CSS to hide the Import button
+        if (!document.getElementById('hide-import-button-style')) {
+          const style = document.createElement('style');
+          style.id = 'hide-import-button-style';
+          style.textContent = `
+            /* Hide Import button in Data Manager toolbar */
+            /* Target the Import button specifically by its text content */
+            button[class*="button"][data-testid="import-button"],
+            a[href*="/import"][class*="button"],
+            .lsf-button[href*="/import"],
+            /* Fallback: hide by button text matching */
+            .lsf-space-dm button:has(span:contains("Import")),
+            /* Target Import link/button in toolbar area */
+            a[href$="/import"],
+            button[data-cy="import-button"] {
+              display: none !important;
+              visibility: hidden !important;
+              opacity: 0 !important;
+              pointer-events: none !important;
+              width: 0 !important;
+              height: 0 !important;
+              overflow: hidden !important;
+              padding: 0 !important;
+              margin: 0 !important;
+            }
+          `;
+          document.head.appendChild(style);
+        }
+
+        // Also hide via JavaScript for React components
+        function hideImportElements() {
+          // Find all elements that could be Import buttons
+          const selectors = [
+            'a[href*="/import"]',
+            'button[data-testid="import-button"]',
+            'button[data-cy="import-button"]'
+          ];
+
+          selectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(el => {
+              el.style.display = 'none';
+              el.style.visibility = 'hidden';
+            });
+          });
+
+          // Find buttons/links by text content
+          document.querySelectorAll('button, a').forEach(el => {
+            const text = el.textContent?.trim();
+            if (text === 'Import') {
+              el.style.display = 'none';
+              el.style.visibility = 'hidden';
+            }
+          });
+        }
+
+        // Apply immediately
+        hideImportElements();
+
+        // Apply after DOM changes (React SPA)
+        const importObserver = new MutationObserver(() => {
+          hideImportElements();
+        });
+
+        importObserver.observe(document.documentElement, {
+          childList: true,
+          subtree: true
+        });
+
+        // Apply periodically for first 10 seconds to ensure React components are hidden
+        let importCount = 0;
+        const importInterval = setInterval(() => {
+          hideImportElements();
+          importCount++;
+          if (importCount >= 50) { // 50 * 200ms = 10 seconds
+            clearInterval(importInterval);
+          }
+        }, 200);
+      }
+
+      // Initialize hide import button (always enabled)
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', hideImportButton);
+      } else {
+        hideImportButton();
+      }
+      window.addEventListener('load', hideImportButton);
+
       // Force CSS variable to 0 continuously
       function forceHeaderHeightToZero() {
         if (shouldHideHeader()) {

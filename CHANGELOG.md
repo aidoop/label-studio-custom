@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.43] - 2025-12-11
+
+### Added
+
+#### Import 버튼 숨김 기능
+- **목적**: Data Manager에서 직접 Import를 막아 데이터 무결성 보호
+- **구현**:
+  - CSS 스타일로 Import 버튼 숨김
+  - JavaScript로 React 컴포넌트 동적 숨김 처리
+  - MutationObserver로 SPA 환경에서도 지속적으로 적용
+- **적용 범위**: 모든 프로젝트의 Data Manager 페이지
+- **효과**: 외부 시스템을 통한 데이터 Import만 허용하여 데이터 일관성 유지
+
 ## [1.20.0-sso.42] - 2025-11-28
 
 ### Fixed
