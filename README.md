@@ -101,6 +101,7 @@
   - v1.20.0-sso.41 (Custom Version API URL 정리)
   - v1.20.0-sso.42 (Custom Version API 완전 제거)
   - v1.20.0-sso.43 (Import 버튼 숨김 기능 추가)
+  - v1.20.0-sso.44 (Date Filter SPA 네비게이션 버그 수정)
 - **문서**: [Custom Export API Guide](docs/CUSTOM_EXPORT_API_GUIDE.md)
 
 ### 8. Data Manager 날짜 범위 필터 UI
@@ -113,10 +114,12 @@
   - 기존 필터 및 정렬과 호환 (AND 조건)
   - 페이지 새로고침 시 필터 자동 복원 및 재적용
   - 초기화 버튼으로 필터 제거
+  - **SPA 네비게이션 지원** (v1.20.0-sso.44): 라벨링 뷰에서 Data Manager로 돌아올 때 자동 복원
 - **기술 구현**:
   - Label Studio View API (`/api/dm/views/{id}/`)로 필터 저장
   - MobX 상태 직접 업데이트로 UI 동기화
   - `custom-templates/base.html`에 JavaScript로 구현
+  - **SPA Navigation Handler**: URL 변경 감지 + MutationObserver + 주기적 체크 (3중 전략)
 
 ### 9. Import 버튼 숨김
 
@@ -154,7 +157,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.43
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.44
 
     depends_on:
       - postgres
@@ -804,16 +807,16 @@ docker compose -f docker-compose.test.yml exec labelstudio \
 
 ```bash
 # 이미지 빌드
-docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.43 .
+docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.44 .
 
 # GitHub Container Registry 로그인
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # 이미지 푸시
-docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.43
+docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.44
 
 # latest 태그 추가
-docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.43 \
+docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.44 \
            ghcr.io/aidoop/label-studio-custom:latest
 docker push ghcr.io/aidoop/label-studio-custom:latest
 ```
@@ -824,7 +827,8 @@ docker push ghcr.io/aidoop/label-studio-custom:latest
 
 - `1.20.0-sso.1` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 1
 - `1.20.0-sso.2` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 2 (bugfix)
-- `1.20.0-sso.43` - Label Studio 1.20.0 기반, Import 버튼 숨김 (현재 버전)
+- `1.20.0-sso.43` - Label Studio 1.20.0 기반, Import 버튼 숨김
+- `1.20.0-sso.44` - Label Studio 1.20.0 기반, Date Filter SPA 네비게이션 버그 수정 (현재 버전)
 - `1.21.0-sso.1` - Label Studio 1.21.0 업그레이드 (미래)
 
 ### 브랜치 전략
