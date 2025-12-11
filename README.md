@@ -100,6 +100,7 @@
   - v1.20.0-sso.40 (Date Range Filter UI 아이콘 개선)
   - v1.20.0-sso.41 (Custom Version API URL 정리)
   - v1.20.0-sso.42 (Custom Version API 완전 제거)
+  - v1.20.0-sso.43 (Import 버튼 숨김 기능 추가)
 - **문서**: [Custom Export API Guide](docs/CUSTOM_EXPORT_API_GUIDE.md)
 
 ### 8. Data Manager 날짜 범위 필터 UI
@@ -117,7 +118,18 @@
   - MobX 상태 직접 업데이트로 UI 동기화
   - `custom-templates/base.html`에 JavaScript로 구현
 
-### 9. SSO 전용 로그인 페이지
+### 9. Import 버튼 숨김
+
+- **목적**: Data Manager에서 직접 Import를 방지하여 데이터 무결성 보호
+- **구현**: CSS와 JavaScript로 Import 버튼 완전 숨김
+- **주요 기능**:
+  - CSS 스타일로 Import 버튼/링크 숨김
+  - MutationObserver로 React SPA 동적 렌더링 대응
+  - 10초간 주기적 체크로 확실한 숨김 보장
+- **효과**: 외부 시스템(API)을 통한 데이터 Import만 허용
+- **적용 범위**: 모든 프로젝트의 Data Manager 페이지에 자동 적용
+
+### 10. SSO 전용 로그인 페이지
 
 - **목적**: iframe 통합 시 Label Studio 직접 로그인 차단, SSO 전용 접근 유도
 - **문제 해결**: iframe에서 잘못된 JWT 토큰 사용 시 일반 로그인 폼 대신 SSO 안내 페이지 표시
@@ -142,7 +154,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   labelstudio:
-    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.38
+    image: ghcr.io/aidoop/label-studio-custom:1.20.0-sso.43
 
     depends_on:
       - postgres
@@ -792,16 +804,16 @@ docker compose -f docker-compose.test.yml exec labelstudio \
 
 ```bash
 # 이미지 빌드
-docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.41 .
+docker build -t ghcr.io/aidoop/label-studio-custom:1.20.0-sso.43 .
 
 # GitHub Container Registry 로그인
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # 이미지 푸시
-docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.41
+docker push ghcr.io/aidoop/label-studio-custom:1.20.0-sso.43
 
 # latest 태그 추가
-docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.41 \
+docker tag ghcr.io/aidoop/label-studio-custom:1.20.0-sso.43 \
            ghcr.io/aidoop/label-studio-custom:latest
 docker push ghcr.io/aidoop/label-studio-custom:latest
 ```
@@ -812,7 +824,7 @@ docker push ghcr.io/aidoop/label-studio-custom:latest
 
 - `1.20.0-sso.1` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 1
 - `1.20.0-sso.2` - Label Studio 1.20.0 기반, SSO 커스터마이징 버전 2 (bugfix)
-- `1.20.0-sso.41` - Label Studio 1.20.0 기반, URL 라우팅 정리 (현재 버전)
+- `1.20.0-sso.43` - Label Studio 1.20.0 기반, Import 버튼 숨김 (현재 버전)
 - `1.21.0-sso.1` - Label Studio 1.21.0 업그레이드 (미래)
 
 ### 브랜치 전략
