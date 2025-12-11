@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0-sso.44] - 2025-12-11
+
+### Fixed
+
+#### Date Filter SPA 네비게이션 버그 수정
+- **문제**: 라벨링 뷰에서 Data Manager로 돌아갈 때 날짜 필터 UI가 표시되지 않음
+- **원인**: `DOMContentLoaded` 이벤트가 한 번만 실행되어 SPA 내부 네비게이션 시 재초기화 안됨
+- **해결**: 다중 전략 SPA Navigation Handler 구현
+  - **Strategy 1**: URL 변경 감지 (`popstate`, `pushState`, `replaceState` 오버라이드)
+  - **Strategy 2**: MutationObserver로 DOM 변경 감지 (디바운싱 적용)
+  - **Strategy 3**: 주기적 체크 (2초 간격, 최대 30초)
+- **테스트**: Playwright로 breadcrumb 네비게이션 테스트 완료
+
 ## [1.20.0-sso.43] - 2025-12-11
 
 ### Added

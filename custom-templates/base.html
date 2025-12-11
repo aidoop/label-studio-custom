@@ -496,19 +496,131 @@
         }, 200);
       }
 
-      // Initialize only once using a flag
-      let dateFilterInitialized = false;
-      function initDateRangeFilterOnce() {
-        if (dateFilterInitialized) return;
-        dateFilterInitialized = true;
-        initDateRangeFilter();
+      /**
+       * SPA Navigation Handler
+       * Uses multiple strategies to detect when Data Manager is displayed
+       * and ensures date filter is always present
+       */
+      function setupSPANavigationHandler() {
+        let lastPathname = location.pathname;
+        let checkInterval = null;
+
+        // Check if we're on a data manager page
+        function isDataManagerPage() {
+          return location.pathname.match(/\/projects\/\d+\/data/);
+        }
+
+        // Check if toolbar exists but date filter doesn't
+        function shouldInsertDateFilter() {
+          const containerExists = document.getElementById('custom-date-filter-container');
+          const toolbarExists = document.querySelector('.lsf-space-dm.lsf-space-dm_direction_horizontal.lsf-space-dm_size_small');
+          return !containerExists && toolbarExists;
+        }
+
+        // Strategy 1: URL change detection (popstate + history override)
+        window.addEventListener('popstate', () => {
+          setTimeout(() => {
+            if (isDataManagerPage() && shouldInsertDateFilter()) {
+              console.log('[DateFilter] popstate: reinitializing...');
+              initDateRangeFilter();
+            }
+          }, 500);
+        });
+
+        const originalPushState = history.pushState;
+        history.pushState = function(...args) {
+          originalPushState.apply(this, args);
+          setTimeout(() => {
+            if (isDataManagerPage() && shouldInsertDateFilter()) {
+              console.log('[DateFilter] pushState: reinitializing...');
+              initDateRangeFilter();
+            }
+          }, 500);
+        };
+
+        const originalReplaceState = history.replaceState;
+        history.replaceState = function(...args) {
+          originalReplaceState.apply(this, args);
+          setTimeout(() => {
+            if (isDataManagerPage() && shouldInsertDateFilter()) {
+              console.log('[DateFilter] replaceState: reinitializing...');
+              initDateRangeFilter();
+            }
+          }, 500);
+        };
+
+        // Strategy 2: MutationObserver for DOM changes
+        // Debounce to avoid too frequent calls
+        let mutationTimeout = null;
+        const containerObserver = new MutationObserver((mutations) => {
+          if (!isDataManagerPage()) return;
+
+          // Debounce: wait for DOM to settle
+          if (mutationTimeout) clearTimeout(mutationTimeout);
+          mutationTimeout = setTimeout(() => {
+            if (shouldInsertDateFilter()) {
+              console.log('[DateFilter] MutationObserver: toolbar found, inserting filter...');
+              initDateRangeFilter();
+            }
+          }, 300);
+        });
+
+        containerObserver.observe(document.documentElement, {
+          childList: true,
+          subtree: true
+        });
+
+        // Strategy 3: Periodic check as fallback
+        // Check every 2 seconds for first 30 seconds after page load
+        let periodicCheckCount = 0;
+        const maxPeriodicChecks = 15; // 15 * 2s = 30 seconds
+
+        function startPeriodicCheck() {
+          if (checkInterval) clearInterval(checkInterval);
+          periodicCheckCount = 0;
+
+          checkInterval = setInterval(() => {
+            periodicCheckCount++;
+
+            if (isDataManagerPage() && shouldInsertDateFilter()) {
+              console.log('[DateFilter] Periodic check: inserting filter...');
+              initDateRangeFilter();
+            }
+
+            if (periodicCheckCount >= maxPeriodicChecks) {
+              clearInterval(checkInterval);
+              checkInterval = null;
+            }
+          }, 2000);
+        }
+
+        // Start periodic check on page load
+        startPeriodicCheck();
+
+        // Restart periodic check when visibility changes (tab switch)
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && isDataManagerPage()) {
+            startPeriodicCheck();
+          }
+        });
+      }
+
+      // Initialize date range filter
+      function initDateFilterSystem() {
+        // Setup SPA navigation handler
+        setupSPANavigationHandler();
+
+        // Initial load
+        if (location.pathname.match(/\/projects\/\d+\/data/)) {
+          initDateRangeFilter();
+        }
       }
 
       // Initialize date range filter after page load
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initDateRangeFilterOnce);
+        document.addEventListener('DOMContentLoaded', initDateFilterSystem);
       } else {
-        initDateRangeFilterOnce();
+        initDateFilterSystem();
       }
 
       // Monitor and apply hideHeader with very aggressive CSS
